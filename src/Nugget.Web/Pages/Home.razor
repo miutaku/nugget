@@ -1,0 +1,166 @@
+﻿@page "/"
+@using Nugget.Web.Components
+@using Nugget.Web.Models
+@using Nugget.Web.Services
+@inject TodoApiService TodoApi
+
+<PageTitle>ToDo一覧 - Nugget</PageTitle>
+
+<div class="page-container">
+    <header class="page-header">
+        <h1>
+            <Icon Name="IconName.Clipboard" Size="28" Class="header-icon" />
+            マイToDo
+        </h1>
+        <p class="subtitle">あなたに割り当てられたタスクを管理します</p>
+    </header>
+
+    <TodoFilter 
+        CurrentFilter="@currentFilter" 
+        CurrentSortBy="@currentSortBy"
+        OnFilterChanged="HandleFilterChanged"
+        OnSortByChanged="HandleSortChanged" />
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>読み込み中...</p>
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="error-message">
+            <Icon Name="IconName.AlertTriangle" Size="20" />
+            <p>@errorMessage</p>
+            <button @onclick="LoadTodosAsync">
+                <Icon Name="IconName.Refresh" Size="16" />
+                再読み込み
+            </button>
+        </div>
+    }
+    else if (!filteredTodos.Any())
+    {
+        <div class="empty-state">
+            <Icon Name="IconName.CheckCircle" Size="64" Class="empty-icon" />
+            <h2>タスクがありません</h2>
+            <p>@GetEmptyMessage()</p>
+        </div>
+    }
+    else
+    {
+        <div class="todo-summary">
+            <span class="summary-item">
+                <strong>@filteredTodos.Count(t => !t.IsCompleted)</strong> 件の未完了タスク
+            </span>
+            <span class="summary-item warning">
+                <strong>@filteredTodos.Count(t => !t.IsCompleted && t.DaysUntilDue <= 0)</strong> 件が期限切れ
+            </span>
+        </div>
+
+        <div class="todo-list">
+            @foreach (var todo in filteredTodos)
+            {
+                <TodoItem Todo="@todo" OnStatusChanged="HandleStatusChanged" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<MyTodoAssignment> allTodos = new();
+    private IEnumerable<MyTodoAssignment> filteredTodos = [];
+    private TodoFilterType currentFilter = TodoFilterType.Incomplete;
+    private TodoSortBy currentSortBy = TodoSortBy.DueDate;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTodosAsync();
+    }
+
+    private async Task LoadTodosAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var sortBy = currentSortBy == TodoSortBy.DueDate ? "dueDate" : "createdAt";
+            allTodos = await TodoApi.GetMyTodosAsync(sortBy: sortBy);
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"タスクの読み込みに失敗しました: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        filteredTodos = currentFilter switch
+        {
+            TodoFilterType.All => allTodos,
+            TodoFilterType.Incomplete => allTodos.Where(t => !t.IsCompleted),
+            TodoFilterType.Completed => allTodos.Where(t => t.IsCompleted),
+            TodoFilterType.Overdue => allTodos.Where(t => !t.IsCompleted && t.DaysUntilDue < 0),
+            _ => allTodos
+        };
+    }
+
+    private async Task HandleFilterChanged(TodoFilterType filter)
+    {
+        currentFilter = filter;
+        ApplyFilter();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleSortChanged(TodoSortBy sortBy)
+    {
+        currentSortBy = sortBy;
+        await LoadTodosAsync();
+    }
+
+    private async Task HandleStatusChanged((Guid TodoId, bool IsCompleted) args)
+    {
+        var (todoId, isCompleted) = args;
+        
+        bool success;
+        if (isCompleted)
+        {
+            success = await TodoApi.CompleteTodoAsync(todoId);
+        }
+        else
+        {
+            success = await TodoApi.UncompleteTodoAsync(todoId);
+        }
+
+        if (success)
+        {
+            var todo = allTodos.FirstOrDefault(t => t.TodoId == todoId);
+            if (todo != null)
+            {
+                todo.IsCompleted = isCompleted;
+                todo.CompletedAt = isCompleted ? DateTime.UtcNow : null;
+            }
+            ApplyFilter();
+        }
+    }
+
+    private string GetEmptyMessage()
+    {
+        return currentFilter switch
+        {
+            TodoFilterType.All => "現在割り当てられているタスクはありません",
+            TodoFilterType.Incomplete => "未完了のタスクはありません。素晴らしい！",
+            TodoFilterType.Completed => "完了したタスクはまだありません",
+            TodoFilterType.Overdue => "期限切れのタスクはありません",
+            _ => "タスクが見つかりません"
+        };
+    }
+}

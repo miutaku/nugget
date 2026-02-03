@@ -1,0 +1,24 @@
+using Nugget.Core.Entities;
+
+namespace Nugget.Core.Interfaces;
+
+/// <summary>
+/// 通知サービスインターフェース
+/// </summary>
+public interface INotificationService
+{
+    /// <summary>
+    /// 新規ToDo通知を送信
+    /// </summary>
+    Task SendNewTodoNotificationAsync(Todo todo, IEnumerable<User> users, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// ToDo更新通知を送信
+    /// </summary>
+    Task SendTodoUpdatedNotificationAsync(Todo todo, IEnumerable<User> users, string changeDescription, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// リマインダー通知を送信
+    /// </summary>
+    Task SendReminderNotificationAsync(Todo todo, User user, int daysUntilDue, CancellationToken cancellationToken = default);
+}

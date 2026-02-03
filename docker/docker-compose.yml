@@ -1,0 +1,59 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=db;Database=nugget;Username=postgres;Password=postgres
+      - Slack__BotToken=${SLACK_BOT_TOKEN:-}
+      - Slack__AppUrl=http://localhost:5173
+      - Saml__EntityId=http://localhost:5000
+      - Saml__ReturnUrl=http://localhost:5173
+      - Cors__AllowedOrigins__0=http://localhost:5173
+      - Cors__AllowedOrigins__1=http://localhost:5000
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - nugget-network
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: web
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    networks:
+      - nugget-network
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=nugget
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nugget-network
+
+volumes:
+  postgres_data:
+
+networks:
+  nugget-network:
+    driver: bridge

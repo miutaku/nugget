@@ -1,0 +1,100 @@
+@using Nugget.Web.Models
+
+<div class="todo-item @GetStatusClass()">
+    <div class="todo-checkbox">
+        <input type="checkbox" 
+               id="@($"todo-{Todo.TodoId}")"
+               checked="@Todo.IsCompleted" 
+               @onchange="OnCheckboxChanged" />
+    </div>
+    
+    <div class="todo-content">
+        <div class="todo-header">
+            <h3 class="todo-title @(Todo.IsCompleted ? "completed" : "")">
+                @Todo.Title
+            </h3>
+            <span class="todo-badge @GetBadgeClass()">
+                @if (Todo.Status == DueStatus.Overdue && !Todo.IsCompleted)
+                {
+                    <Icon Name="IconName.AlertCircle" Size="12" />
+                }
+                else if (Todo.Status == DueStatus.DueToday && !Todo.IsCompleted)
+                {
+                    <Icon Name="IconName.AlertTriangle" Size="12" />
+                }
+                else if (Todo.Status == DueStatus.DueSoon && !Todo.IsCompleted)
+                {
+                    <Icon Name="IconName.Clock" Size="12" />
+                }
+                else if (Todo.IsCompleted)
+                {
+                    <Icon Name="IconName.Check" Size="12" />
+                }
+                @GetDueText()
+            </span>
+        </div>
+        
+        @if (!string.IsNullOrEmpty(Todo.Description))
+        {
+            <p class="todo-description">@Todo.Description</p>
+        }
+        
+        <div class="todo-meta">
+            <span class="todo-due-date">
+                <Icon Name="IconName.Calendar" Size="14" />
+                @Todo.DueDate.ToString("yyyy/MM/dd HH:mm")
+            </span>
+            <span class="todo-creator">
+                <Icon Name="IconName.User" Size="14" />
+                @Todo.CreatedBy.Name
+            </span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public required MyTodoAssignment Todo { get; set; }
+
+    [Parameter]
+    public EventCallback<(Guid TodoId, bool IsCompleted)> OnStatusChanged { get; set; }
+
+    private async Task OnCheckboxChanged(ChangeEventArgs e)
+    {
+        var isCompleted = (bool)(e.Value ?? false);
+        await OnStatusChanged.InvokeAsync((Todo.TodoId, isCompleted));
+    }
+
+    private string GetStatusClass()
+    {
+        if (Todo.IsCompleted) return "status-completed";
+        return Todo.Status switch
+        {
+            DueStatus.Overdue => "status-overdue",
+            DueStatus.DueToday => "status-today",
+            DueStatus.DueSoon => "status-soon",
+            _ => "status-normal"
+        };
+    }
+
+    private string GetBadgeClass()
+    {
+        if (Todo.IsCompleted) return "badge-completed";
+        return Todo.Status switch
+        {
+            DueStatus.Overdue => "badge-overdue",
+            DueStatus.DueToday => "badge-today",
+            DueStatus.DueSoon => "badge-soon",
+            _ => "badge-normal"
+        };
+    }
+
+    private string GetDueText()
+    {
+        if (Todo.IsCompleted) return "完了";
+        if (Todo.DaysUntilDue < 0) return $"{Math.Abs(Todo.DaysUntilDue)}日超過";
+        if (Todo.DaysUntilDue == 0) return "本日期限";
+        if (Todo.DaysUntilDue == 1) return "明日期限";
+        return $"あと{Todo.DaysUntilDue}日";
+    }
+}
