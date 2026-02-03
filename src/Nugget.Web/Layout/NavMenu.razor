@@ -14,11 +14,15 @@
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> マイToDo
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="admin/todos/create">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> ToDo作成
-            </NavLink>
-        </div>
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/todos/create">
+                        <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> ToDo作成
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
     </nav>
 </div>
 

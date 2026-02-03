@@ -1,4 +1,7 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@using Nugget.Web.Components
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -6,7 +9,21 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <AuthorizeView>
+                <Authorized>
+                    <div class="user-info">
+                        <Icon Name="IconName.User" Size="16" />
+                        <span class="user-name">@context.User.Identity?.Name</span>
+                        <span class="user-role badge">@GetRoleName(context.User)</span>
+                    </div>
+                    <button class="btn btn-link logout-link" @onclick="Logout">
+                        ログアウト
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="api/auth/login" class="login-link">ログイン</a>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
 
         <article class="content px-4">
@@ -14,3 +31,16 @@
         </article>
     </main>
 </div>
+
+@code {
+    private void Logout()
+    {
+        Navigation.NavigateTo("api/auth/logout", forceLoad: true);
+    }
+
+    private string GetRoleName(System.Security.Claims.ClaimsPrincipal user)
+    {
+        if (user.IsInRole("Admin")) return "管理者";
+        return "一般ユーザー";
+    }
+}
