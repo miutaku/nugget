@@ -13,5 +13,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiBaseU
 
 // Register services
 builder.Services.AddScoped<TodoApiService>();
+builder.Services.AddScoped<AdminApiService>();
 
 await builder.Build().RunAsync();
+

@@ -1,0 +1,255 @@
+@page "/admin/todos/create"
+@using Nugget.Web.Components
+@using Nugget.Web.Models
+@using Nugget.Web.Services
+@inject AdminApiService AdminApi
+@inject NavigationManager Navigation
+
+<PageTitle>ToDo作成 - Nugget</PageTitle>
+
+<div class="page-container admin-page">
+    <header class="page-header">
+        <h1>
+            <Icon Name="IconName.Plus" Size="28" Class="header-icon" />
+            新規ToDo作成
+        </h1>
+        <p class="subtitle">全社員または特定グループにToDoを割り当てます</p>
+    </header>
+
+    @if (isSubmitting)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>作成中...</p>
+        </div>
+    }
+    else if (isSuccess)
+    {
+        <div class="success-message">
+            <Icon Name="IconName.CheckCircle" Size="48" Class="success-icon" />
+            <h2>ToDoを作成しました</h2>
+            <p>「@model.Title」が正常に作成されました。</p>
+            <div class="success-actions">
+                <button class="btn-primary" @onclick="CreateAnother">続けて作成</button>
+                <button class="btn-secondary" @onclick="GoToHome">一覧に戻る</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <form @onsubmit="HandleSubmit" class="todo-form">
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-banner">
+                    <Icon Name="IconName.AlertCircle" Size="16" />
+                    @errorMessage
+                </div>
+            }
+
+            <div class="form-section">
+                <h3>基本情報</h3>
+                
+                <div class="form-group">
+                    <label for="title">タイトル <span class="required">*</span></label>
+                    <input type="text" 
+                           id="title" 
+                           @bind="model.Title" 
+                           placeholder="例: 1月分工数入力" 
+                           required 
+                           maxlength="200" />
+                </div>
+
+                <div class="form-group">
+                    <label for="description">詳細説明</label>
+                    <textarea id="description" 
+                              @bind="model.Description" 
+                              placeholder="ToDoの詳細を入力（任意）"
+                              rows="4"></textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>期限設定</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dueDate">期限日 <span class="required">*</span></label>
+                        <input type="date" 
+                               id="dueDate" 
+                               @bind="model.DueDate" 
+                               required />
+                    </div>
+                    <div class="form-group">
+                        <label for="dueTime">期限時刻</label>
+                        <input type="time" 
+                               id="dueTime" 
+                               value="@model.DueTime.ToString(@"hh\:mm")"
+                               @onchange="HandleTimeChange" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>対象設定</h3>
+                
+                <div class="form-group">
+                    <label>対象範囲</label>
+                    <div class="radio-group">
+                        <label class="radio-option @(model.TargetType == "All" ? "selected" : "")">
+                            <input type="radio" 
+                                   name="targetType" 
+                                   value="All" 
+                                   checked="@(model.TargetType == "All")"
+                                   @onchange="@(() => model.TargetType = "All")" />
+                            <span class="radio-label">
+                                <Icon Name="IconName.User" Size="16" />
+                                全社員
+                            </span>
+                            <span class="radio-desc">すべてのアクティブなユーザーに割り当てます</span>
+                        </label>
+                        <label class="radio-option @(model.TargetType == "Group" ? "selected" : "")">
+                            <input type="radio" 
+                                   name="targetType" 
+                                   value="Group" 
+                                   checked="@(model.TargetType == "Group")"
+                                   @onchange="@(() => model.TargetType = "Group")" />
+                            <span class="radio-label">
+                                <Icon Name="IconName.Filter" Size="16" />
+                                グループ指定
+                            </span>
+                            <span class="radio-desc">特定のグループに割り当てます（Phase 2で対応予定）</span>
+                        </label>
+                    </div>
+                </div>
+
+                @if (model.TargetType == "Group")
+                {
+                    <div class="form-group">
+                        <label for="groupName">グループ名</label>
+                        <input type="text" 
+                               id="groupName" 
+                               @bind="model.TargetGroupName" 
+                               placeholder="グループ名を入力"
+                               disabled />
+                        <span class="form-hint">グループ機能はPhase 2で実装予定です</span>
+                    </div>
+                }
+            </div>
+
+            <div class="form-section">
+                <h3>通知設定</h3>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="model.NotifyImmediately" />
+                        <span>作成時にSlack通知を送信する</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>リマインダー（期限の何日前に通知）</label>
+                    <div class="reminder-options">
+                        @foreach (var day in new[] { 7, 3, 1, 0 })
+                        {
+                            <label class="checkbox-pill @(model.ReminderDays.Contains(day) ? "selected" : "")">
+                                <input type="checkbox" 
+                                       checked="@model.ReminderDays.Contains(day)"
+                                       @onchange="@(e => ToggleReminderDay(day, (bool)(e.Value ?? false)))" />
+                                @(day == 0 ? "当日" : $"{day}日前")
+                            </label>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" @onclick="GoToHome">キャンセル</button>
+                <button type="submit" class="btn-primary" disabled="@(!IsFormValid())">
+                    <Icon Name="IconName.Check" Size="16" />
+                    作成する
+                </button>
+            </div>
+        </form>
+    }
+</div>
+
+@code {
+    private CreateTodoModel model = new();
+    private bool isSubmitting = false;
+    private bool isSuccess = false;
+    private string? errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        if (!IsFormValid())
+        {
+            return;
+        }
+
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await AdminApi.CreateTodoAsync(model);
+            
+            if (result != null)
+            {
+                isSuccess = true;
+            }
+            else
+            {
+                errorMessage = "ToDoの作成に失敗しました。権限を確認してください。";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"エラーが発生しました: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void HandleTimeChange(ChangeEventArgs e)
+    {
+        if (TimeSpan.TryParse(e.Value?.ToString(), out var time))
+        {
+            model.DueTime = time;
+        }
+    }
+
+    private void ToggleReminderDay(int day, bool isChecked)
+    {
+        if (isChecked)
+        {
+            if (!model.ReminderDays.Contains(day))
+            {
+                model.ReminderDays.Add(day);
+                model.ReminderDays.Sort((a, b) => b.CompareTo(a));
+            }
+        }
+        else
+        {
+            model.ReminderDays.Remove(day);
+        }
+    }
+
+    private bool IsFormValid()
+    {
+        return !string.IsNullOrWhiteSpace(model.Title) 
+            && model.DueDate >= DateTime.Today;
+    }
+
+    private void CreateAnother()
+    {
+        model = new CreateTodoModel();
+        isSuccess = false;
+    }
+
+    private void GoToHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+}
