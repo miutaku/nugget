@@ -220,6 +220,11 @@ public class TodosController : ControllerBase
         return Ok(values);
     }
 
+    /// <summary>
+    /// 現在のログインユーザーのIDを取得します。
+    /// SAML認証やSCIM統合などにより、複数の NameIdentifier クレームが存在する可能性があるため、
+    /// ClaimsTransformation で正規化された GUID 形式の値を優先的に取得します。
+    /// </summary>
     private Guid GetCurrentUserId()
     {
         // ClaimsTransformation によって追加された Guid 形式の NameIdentifier を優先的に探す
