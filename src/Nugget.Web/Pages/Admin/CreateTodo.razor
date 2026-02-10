@@ -1,4 +1,4 @@
-@page "/admin/todos/create"
+@page "/todos/create"
 @attribute [Authorize]
 @using Nugget.Web.Components
 @using Nugget.Web.Models
@@ -14,7 +14,7 @@
             <Icon Name="IconName.Plus" Size="28" Class="header-icon" />
             新規ToDo作成
         </h1>
-        <p class="subtitle">全社員または特定グループにToDoを割り当てます</p>
+        <p class="subtitle">全社員または特定の社員にToDoを割り当てます</p>
     </header>
 
     @if (isSubmitting)

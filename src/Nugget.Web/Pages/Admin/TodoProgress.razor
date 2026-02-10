@@ -1,4 +1,4 @@
-@page "/admin/todos/progress"
+@page "/todos/progress"
 @attribute [Authorize]
 @using Nugget.Web.Models
 @using Nugget.Web.Services
@@ -40,7 +40,7 @@
         <div class="empty-state">
             <Icon Name="IconName.Clipboard" Size="48" />
             <p>まだToDoを作成していません。</p>
-            <button class="btn-primary" @onclick='() => Navigation.NavigateTo("/admin/todos/create")'>
+            <button class="btn-primary" @onclick='() => Navigation.NavigateTo("/todos/create")'>
                 ToDoを作成する
             </button>
         </div>
