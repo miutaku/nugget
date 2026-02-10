@@ -7,6 +7,7 @@ using Nugget.Core.Interfaces;
 using Nugget.Api.DTOs;
 using Nugget.Api.Services;
 using Nugget.Infrastructure.Data;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Nugget.Api.Tests;
 
