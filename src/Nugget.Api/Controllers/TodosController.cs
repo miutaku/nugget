@@ -58,13 +58,11 @@ public class TodosController : ControllerBase
     }
 
     /// <summary>
-    /// ToDoを作成（管理者のみ）
+    /// ToDoを作成
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(TodoResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateTodo(
         [FromBody] CreateTodoRequest request,
         CancellationToken cancellationToken = default)
@@ -109,7 +107,6 @@ public class TodosController : ControllerBase
     /// ToDoを更新（管理者のみ）
     /// </summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(TodoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -118,6 +115,21 @@ public class TodosController : ControllerBase
         [FromBody] UpdateTodoRequest request,
         CancellationToken cancellationToken = default)
     {
+        // 権限チェック
+        var userId = GetCurrentUserId();
+        var existingTodo = await _todoService.GetTodoByIdAsync(id, cancellationToken);
+        
+        if (existingTodo == null)
+        {
+            return NotFound();
+        }
+
+        // 管理者か、作成者本人以外は禁止
+        if (!User.IsInRole("Admin") && existingTodo.CreatedById != userId)
+        {
+             return Forbid();
+        }
+
         var todo = await _todoService.UpdateTodoAsync(id, request, cancellationToken);
 
         if (todo == null)
@@ -194,7 +206,6 @@ public class TodosController : ControllerBase
     /// 指定された属性キーのユニーク値一覧を取得
     /// </summary>
     [HttpGet("attribute-values")]
-    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAttributeValues(
         [FromQuery] string key,

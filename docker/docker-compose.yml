@@ -50,7 +50,7 @@ services:
     volumes:
       - tidb_data:/tmp/tidb
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-P", "4000", "-u", "root"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:10080/status"]
       interval: 5s
       timeout: 5s
       retries: 10

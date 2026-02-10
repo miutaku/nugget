@@ -160,10 +160,19 @@ public class TodoService
         }
 
         return todo;
+        return todo;
     }
 
     /// <summary>
-    /// ToDoを更新（管理者用）
+    /// ToDoを取得（権限チェック用）
+    /// </summary>
+    public async Task<Todo?> GetTodoByIdAsync(Guid todoId, CancellationToken cancellationToken = default)
+    {
+        return await _todoRepository.GetByIdAsync(todoId, cancellationToken);
+    }
+
+    /// <summary>
+    /// ToDoを更新
     /// </summary>
     public async Task<Todo?> UpdateTodoAsync(
         Guid todoId,

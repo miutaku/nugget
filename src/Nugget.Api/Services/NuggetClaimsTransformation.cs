@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
+using Nugget.Core.Entities;
+using Nugget.Core.Enums;
 using Nugget.Core.Interfaces;
 using System.Security.Claims;
 
@@ -50,47 +52,63 @@ public class NuggetClaimsTransformation : IClaimsTransformation
         _logger.LogInformation("Attempting to map SAML identity {NameId} to local user", nameId);
         var user = await _userRepository.GetByEmailAsync(nameId);
 
-        if (user != null)
+        if (user == null)
         {
-            var identity = (ClaimsIdentity)principal.Identity;
+            // 初回ログイン時: ユーザーを自動作成
+            _logger.LogInformation("User {Email} not found in database. Auto-creating on first SAML login.", nameId);
             
-            // 内部 Guid を NameIdentifier として追加
-            identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
-            
-            // ロール情報を決定
-            var finalRole = user.Role;
-            
-            // 環境変数による管理者制限チェック
-            var adminEmailsRaw = Environment.GetEnvironmentVariable("SAML_ADMIN_EMAILS");
-            if (!string.IsNullOrEmpty(adminEmailsRaw))
+            var displayName = principal.FindFirstValue(ClaimTypes.Name)
+                           ?? principal.FindFirstValue("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname")
+                           ?? nameId;
+
+            user = new User
             {
-                var adminEmails = adminEmailsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                var isAuthorizedAdmin = adminEmails.Any(e => e.Equals(user.Email, StringComparison.OrdinalIgnoreCase));
-                
-                if (user.Role == Nugget.Core.Enums.UserRole.Admin && !isAuthorizedAdmin)
-                {
-                    _logger.LogWarning("User {Email} has Admin role in DB but is not in SAML_ADMIN_EMAILS. Downgrading to User role.", user.Email);
-                    finalRole = Nugget.Core.Enums.UserRole.User;
-                }
-                else if (user.Role != Nugget.Core.Enums.UserRole.Admin && isAuthorizedAdmin)
-                {
-                    _logger.LogInformation("User {Email} is in SAML_ADMIN_EMAILS. Upgrading to Admin role.", user.Email);
-                    finalRole = Nugget.Core.Enums.UserRole.Admin;
-                }
-            }
-            
-            identity.AddClaim(new Claim(ClaimTypes.Role, finalRole.ToString()));
-            
-            // 変換済みフラグを付与
-            identity.AddClaim(new Claim("nugget_transformed", "true"));
-            
-            _logger.LogInformation("Successfully mapped user {Email} to internal ID {Id} with role {Role}", 
-                user.Email, user.Id, finalRole);
+                Id = Guid.NewGuid(),
+                Email = nameId,
+                Name = displayName,
+                ExternalId = nameId,
+                IsActive = true,
+                Role = UserRole.User
+            };
+
+            await _userRepository.AddAsync(user);
+            _logger.LogInformation("Auto-created user {Email} with ID {Id}", user.Email, user.Id);
         }
-        else
+
+        var identity = (ClaimsIdentity)principal.Identity;
+        
+        // 内部 Guid を NameIdentifier として追加
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
+        
+        // ロール情報を決定
+        var finalRole = user.Role;
+        
+        // 環境変数による管理者制限チェック
+        var adminEmailsRaw = Environment.GetEnvironmentVariable("SAML_ADMIN_EMAILS");
+        if (!string.IsNullOrEmpty(adminEmailsRaw))
         {
-            _logger.LogWarning("User with email {Email} not found in database. SSO successful but local identity mapping failed.", nameId);
+            var adminEmails = adminEmailsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var isAuthorizedAdmin = adminEmails.Any(e => e.Equals(user.Email, StringComparison.OrdinalIgnoreCase));
+            
+            if (user.Role == UserRole.Admin && !isAuthorizedAdmin)
+            {
+                _logger.LogWarning("User {Email} has Admin role in DB but is not in SAML_ADMIN_EMAILS. Downgrading to User role.", user.Email);
+                finalRole = UserRole.User;
+            }
+            else if (user.Role != UserRole.Admin && isAuthorizedAdmin)
+            {
+                _logger.LogInformation("User {Email} is in SAML_ADMIN_EMAILS. Upgrading to Admin role.", user.Email);
+                finalRole = UserRole.Admin;
+            }
         }
+        
+        identity.AddClaim(new Claim(ClaimTypes.Role, finalRole.ToString()));
+        
+        // 変換済みフラグを付与
+        identity.AddClaim(new Claim("nugget_transformed", "true"));
+        
+        _logger.LogInformation("Successfully mapped user {Email} to internal ID {Id} with role {Role}", 
+            user.Email, user.Id, finalRole);
 
         return principal;
     }
