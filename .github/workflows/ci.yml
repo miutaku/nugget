@@ -6,21 +6,16 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-test:
+  docker-verify:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 10.0.x
-        
-    - name: Restore dependencies
-      run: dotnet restore Nugget.slnx
+    - name: Run Unit Tests (Docker)
+      run: docker build -f docker/Dockerfile --target test .
       
-    - name: Build
-      run: dotnet build Nugget.slnx --no-restore -c Release
+    - name: Verify Build (API)
+      run: docker build -f docker/Dockerfile --target api .
       
-    - name: Test
-      run: dotnet test Nugget.slnx --no-build -c Release --verbosity normal
+    - name: Verify Build (Web)
+      run: docker build -f docker/Dockerfile --target web .

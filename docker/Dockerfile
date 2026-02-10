@@ -17,6 +17,11 @@ RUN dotnet restore
 
 # Copy source code
 COPY src/ src/
+COPY tests/ tests/
+
+# Test stage
+FROM build AS test
+RUN dotnet test Nugget.slnx -c Release --no-restore
 
 # Build and publish API
 RUN dotnet publish src/Nugget.Api/Nugget.Api.csproj -c Release -o /app/api
