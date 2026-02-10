@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Nugget.Api.DTOs;
 using Nugget.Api.Services;
 using Nugget.Core.Enums;
+using Nugget.Core.Interfaces;
 using System.Security.Claims;
 
 namespace Nugget.Api.Controllers;
@@ -16,11 +17,13 @@ namespace Nugget.Api.Controllers;
 public class TodosController : ControllerBase
 {
     private readonly TodoService _todoService;
+    private readonly IUserRepository _userRepository;
     private readonly ILogger<TodosController> _logger;
 
-    public TodosController(TodoService todoService, ILogger<TodosController> logger)
+    public TodosController(TodoService todoService, IUserRepository userRepository, ILogger<TodosController> logger)
     {
         _todoService = todoService;
+        _userRepository = userRepository;
         _logger = logger;
     }
 
@@ -43,6 +46,18 @@ public class TodosController : ControllerBase
     }
 
     /// <summary>
+    /// 自分の作成したToDoの進捗一覧を取得
+    /// </summary>
+    [HttpGet("created")]
+    [ProducesResponseType(typeof(IReadOnlyList<CreatedTodoProgressResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCreatedTodos(CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var progress = await _todoService.GetCreatedTodosProgressAsync(userId, cancellationToken);
+        return Ok(progress);
+    }
+
+    /// <summary>
     /// ToDoを作成（管理者のみ）
     /// </summary>
     [HttpPost]
@@ -59,9 +74,9 @@ public class TodosController : ControllerBase
             return BadRequest("タイトルは必須です");
         }
 
-        if (request.DueDate <= DateTime.UtcNow)
+        if (request.DueDate.Date < DateTime.UtcNow.Date)
         {
-            return BadRequest("期限は現在時刻より後に設定してください");
+            return BadRequest("期限は今日以降の日付を設定してください");
         }
 
         var userId = GetCurrentUserId();
@@ -175,12 +190,41 @@ public class TodosController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// 指定された属性キーのユニーク値一覧を取得
+    /// </summary>
+    [HttpGet("attribute-values")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAttributeValues(
+        [FromQuery] string key,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return BadRequest("属性キーは必須です");
+        }
+
+        var values = await _userRepository.GetDistinctAttributeValuesAsync(key, cancellationToken);
+        return Ok(values);
+    }
+
     private Guid GetCurrentUserId()
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // ClaimsTransformation によって追加された Guid 形式の NameIdentifier を優先的に探す
+        var userIdClaim = User.FindAll(ClaimTypes.NameIdentifier)
+                              .Select(c => c.Value)
+                              .FirstOrDefault(v => Guid.TryParse(v, out _));
+
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            // なければ最初に見つかったものを取得
+            userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
-            throw new InvalidOperationException("User ID not found in claims");
+            throw new InvalidOperationException("User ID not found in claims or is in invalid format");
         }
         return userId;
     }

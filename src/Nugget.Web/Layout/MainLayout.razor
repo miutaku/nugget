@@ -14,7 +14,7 @@
                     <div class="user-info">
                         <Icon Name="IconName.User" Size="16" />
                         <span class="user-name">@context.User.Identity?.Name</span>
-                        <span class="user-role badge">@GetRoleName(context.User)</span>
+                        <span class="user-role badge" style="@GetRoleStyle(context.User)">@GetRoleName(context.User)</span>
                     </div>
                     <button class="btn btn-link logout-link" @onclick="Logout">
                         ログアウト
@@ -42,5 +42,18 @@
     {
         if (user.IsInRole("Admin")) return "管理者";
         return "一般ユーザー";
+    }
+
+    private string GetRoleBackgroundColor(System.Security.Claims.ClaimsPrincipal user)
+    {
+        if (user.IsInRole("Admin")) return "#ef4444"; // Red for Admin
+        return "#f3f4f6"; // Gray for User
+    }
+
+    private string GetRoleStyle(System.Security.Claims.ClaimsPrincipal user)
+    {
+        var bgColor = GetRoleBackgroundColor(user);
+        // User requested not to specify text color
+        return $"background-color: {bgColor}; border-color: {bgColor}";
     }
 }

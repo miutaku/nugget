@@ -39,6 +39,37 @@ public class User
     /// </summary>
     public string? ExternalId { get; set; }
 
+    // SCIM Enterprise User Schema attributes
+    /// <summary>
+    /// 部署名 (SCIM: department)
+    /// </summary>
+    public string? Department { get; set; }
+
+    /// <summary>
+    /// 事業部 (SCIM: division)
+    /// </summary>
+    public string? Division { get; set; }
+
+    /// <summary>
+    /// 役職 (SCIM: title)
+    /// </summary>
+    public string? JobTitle { get; set; }
+
+    /// <summary>
+    /// 社員番号 (SCIM: employeeNumber)
+    /// </summary>
+    public string? EmployeeNumber { get; set; }
+
+    /// <summary>
+    /// コストセンター (SCIM: costCenter)
+    /// </summary>
+    public string? CostCenter { get; set; }
+
+    /// <summary>
+    /// 組織名 (SCIM: organization)
+    /// </summary>
+    public string? Organization { get; set; }
+
     /// <summary>
     /// アクティブフラグ
     /// </summary>

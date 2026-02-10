@@ -46,6 +46,16 @@ public class Todo
     public Group? TargetGroup { get; set; }
 
     /// <summary>
+    /// 属性キー（TargetType = Attribute の場合。例: "Department"）
+    /// </summary>
+    public string? TargetAttributeKey { get; set; }
+
+    /// <summary>
+    /// 属性値（TargetType = Attribute の場合。例: "営業部"）
+    /// </summary>
+    public string? TargetAttributeValue { get; set; }
+
+    /// <summary>
     /// 即時通知するか
     /// </summary>
     public bool NotifyImmediately { get; set; } = true;

@@ -18,5 +18,10 @@ public enum TargetType
     /// <summary>
     /// 特定個人
     /// </summary>
-    Individual = 2
+    Individual = 2,
+
+    /// <summary>
+    /// 属性値による指定
+    /// </summary>
+    Attribute = 3
 }

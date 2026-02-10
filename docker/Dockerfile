@@ -26,6 +26,8 @@ RUN dotnet publish src/Nugget.Web/Nugget.Web.csproj -c Release -o /app/web
 
 # Runtime stage for API
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS api
+USER root
+RUN apt-get update && apt-get install -y libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/api .
 EXPOSE 8080

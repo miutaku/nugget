@@ -66,4 +66,45 @@ public class UserRepository : IUserRepository
         _context.Users.Update(user);
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<User>> GetUsersByAttributeAsync(string attributeKey, string attributeValue, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Users.Where(u => u.IsActive);
+
+        query = attributeKey.ToLowerInvariant() switch
+        {
+            "department" => query.Where(u => u.Department == attributeValue),
+            "division" => query.Where(u => u.Division == attributeValue),
+            "jobtitle" => query.Where(u => u.JobTitle == attributeValue),
+            "employeenumber" => query.Where(u => u.EmployeeNumber == attributeValue),
+            "costcenter" => query.Where(u => u.CostCenter == attributeValue),
+            "organization" => query.Where(u => u.Organization == attributeValue),
+            _ => query.Where(u => false) // Unknown attribute returns no results
+        };
+
+        return await query.OrderBy(u => u.Name).ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<string>> GetDistinctAttributeValuesAsync(string attributeKey, CancellationToken cancellationToken = default)
+    {
+        var activeUsers = _context.Users.Where(u => u.IsActive);
+
+        IQueryable<string?> values = attributeKey.ToLowerInvariant() switch
+        {
+            "department" => activeUsers.Select(u => u.Department),
+            "division" => activeUsers.Select(u => u.Division),
+            "jobtitle" => activeUsers.Select(u => u.JobTitle),
+            "employeenumber" => activeUsers.Select(u => u.EmployeeNumber),
+            "costcenter" => activeUsers.Select(u => u.CostCenter),
+            "organization" => activeUsers.Select(u => u.Organization),
+            _ => Enumerable.Empty<string?>().AsQueryable()
+        };
+
+        return await values
+            .Where(v => v != null)
+            .Distinct()
+            .OrderBy(v => v)
+            .Select(v => v!)
+            .ToListAsync(cancellationToken);
+    }
 }

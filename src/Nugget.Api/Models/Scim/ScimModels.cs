@@ -46,8 +46,29 @@ public class ScimUser
     [JsonPropertyName("groups")]
     public List<ScimGroupRef> Groups { get; set; } = new();
     
+    [JsonPropertyName("urn:ietf:params:scim:schemas:extension:enterprise:2.0:User")]
+    public ScimEnterpriseUser? EnterpriseUser { get; set; }
+
     [JsonPropertyName("meta")]
     public ScimMeta Meta { get; set; } = new();
+}
+
+public class ScimEnterpriseUser
+{
+    [JsonPropertyName("employeeNumber")]
+    public string? EmployeeNumber { get; set; }
+
+    [JsonPropertyName("costCenter")]
+    public string? CostCenter { get; set; }
+
+    [JsonPropertyName("organization")]
+    public string? Organization { get; set; }
+
+    [JsonPropertyName("division")]
+    public string? Division { get; set; }
+
+    [JsonPropertyName("department")]
+    public string? Department { get; set; }
 }
 
 public class ScimEmail

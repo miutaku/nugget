@@ -31,8 +31,17 @@ public class NotificationSettingsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetSettings(CancellationToken cancellationToken)
     {
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdStr, out var userId))
+        // ClaimsTransformation によって追加された Guid 形式の NameIdentifier を優先的に探す
+        var userIdStr = User.FindAll(ClaimTypes.NameIdentifier)
+                            .Select(c => c.Value)
+                            .FirstOrDefault(v => Guid.TryParse(v, out _));
+
+        if (string.IsNullOrEmpty(userIdStr))
+        {
+            userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
         {
             return Unauthorized();
         }

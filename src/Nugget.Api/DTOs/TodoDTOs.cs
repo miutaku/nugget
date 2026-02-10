@@ -43,6 +43,16 @@ public record CreateTodoRequest
     public List<Guid>? TargetUserIds { get; init; }
 
     /// <summary>
+    /// 属性キー（TargetType = Attribute の場合。例: "Department"）
+    /// </summary>
+    public string? TargetAttributeKey { get; init; }
+
+    /// <summary>
+    /// 属性値（TargetType = Attribute の場合。例: "営業部"）
+    /// </summary>
+    public string? TargetAttributeValue { get; init; }
+
+    /// <summary>
     /// 即時通知するか
     /// </summary>
     public bool NotifyImmediately { get; init; } = true;
@@ -127,4 +137,30 @@ public record MyTodoAssignmentResponse
     public DateTime? CompletedAt { get; init; }
     public int DaysUntilDue { get; init; }
     public required CreatedByResponse CreatedBy { get; init; }
+}
+
+/// <summary>
+/// 作成したToDoの進捗レスポンスDTO
+/// </summary>
+public record CreatedTodoProgressResponse
+{
+    public Guid TodoId { get; init; }
+    public required string Title { get; init; }
+    public DateTime DueDate { get; init; }
+    public int TotalAssigned { get; init; }
+    public int CompletedCount { get; init; }
+    public double CompletionRate => TotalAssigned > 0 ? (double)CompletedCount / TotalAssigned * 100 : 0;
+    public required List<TodoAssignmentProgressDto> Assignments { get; init; }
+}
+
+/// <summary>
+/// 個別のToDo割り当て進捗DTO
+/// </summary>
+public record TodoAssignmentProgressDto
+{
+    public Guid UserId { get; init; }
+    public required string UserName { get; init; }
+    public required string UserEmail { get; init; }
+    public bool IsCompleted { get; init; }
+    public DateTime? CompletedAt { get; init; }
 }

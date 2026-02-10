@@ -109,12 +109,17 @@ public class TodoService
             TargetType = request.TargetType,
             TargetGroupName = request.TargetGroupName,
             TargetGroupId = request.TargetGroupId,
+            TargetAttributeKey = request.TargetAttributeKey,
+            TargetAttributeValue = request.TargetAttributeValue,
             NotifyImmediately = request.NotifyImmediately,
             ReminderDays = request.ReminderDays ?? [3, 1, 0]
         };
 
         // 対象ユーザーを取得
-        var targetUsers = await GetTargetUsersAsync(request.TargetType, request.TargetGroupName, request.TargetGroupId, request.TargetUserIds, cancellationToken);
+        var targetUsers = await GetTargetUsersAsync(
+            request.TargetType, request.TargetGroupName, request.TargetGroupId,
+            request.TargetUserIds, request.TargetAttributeKey, request.TargetAttributeValue,
+            cancellationToken);
 
         // ToDo割り当てを作成
         foreach (var user in targetUsers)
@@ -260,11 +265,45 @@ public class TodoService
         return true;
     }
 
+    /// <summary>
+    /// 作成したToDoの進捗一覧を取得
+    /// </summary>
+    public async Task<IReadOnlyList<CreatedTodoProgressResponse>> GetCreatedTodosProgressAsync(
+        Guid creatorId,
+        CancellationToken cancellationToken = default)
+    {
+        var todos = await _context.Todos
+            .Include(t => t.Assignments)
+                .ThenInclude(a => a.User)
+            .Where(t => t.CreatedById == creatorId)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return todos.Select(t => new CreatedTodoProgressResponse
+        {
+            TodoId = t.Id,
+            Title = t.Title,
+            DueDate = t.DueDate,
+            TotalAssigned = t.Assignments.Count,
+            CompletedCount = t.Assignments.Count(a => a.IsCompleted),
+            Assignments = t.Assignments.Select(a => new TodoAssignmentProgressDto
+            {
+                UserId = a.UserId,
+                UserName = a.User.Name,
+                UserEmail = a.User.Email,
+                IsCompleted = a.IsCompleted,
+                CompletedAt = a.CompletedAt
+            }).OrderBy(a => a.IsCompleted).ThenBy(a => a.UserName).ToList()
+        }).ToList();
+    }
+
     private async Task<IReadOnlyList<User>> GetTargetUsersAsync(
         TargetType targetType,
         string? targetGroupName,
         Guid? targetGroupId,
         List<Guid>? targetUserIds,
+        string? targetAttributeKey,
+        string? targetAttributeValue,
         CancellationToken cancellationToken)
     {
         return targetType switch
@@ -274,6 +313,8 @@ public class TodoService
                 .Where(u => targetUserIds.Contains(u.Id) && u.IsActive)
                 .ToListAsync(cancellationToken),
             TargetType.Group when targetGroupId.HasValue => await GetGroupMembersAsync(targetGroupId.Value, cancellationToken),
+            TargetType.Attribute when !string.IsNullOrEmpty(targetAttributeKey) && !string.IsNullOrEmpty(targetAttributeValue)
+                => await _userRepository.GetUsersByAttributeAsync(targetAttributeKey, targetAttributeValue, cancellationToken),
             _ => []
         };
     }

@@ -143,6 +143,17 @@ public class ScimController : ControllerBase
             UpdatedAt = DateTime.UtcNow
         };
 
+        // Map Enterprise User attributes
+        if (scimUser.EnterpriseUser != null)
+        {
+            user.Department = scimUser.EnterpriseUser.Department;
+            user.Division = scimUser.EnterpriseUser.Division;
+            user.JobTitle = scimUser.EnterpriseUser.Organization; // SCIM title maps here
+            user.EmployeeNumber = scimUser.EnterpriseUser.EmployeeNumber;
+            user.CostCenter = scimUser.EnterpriseUser.CostCenter;
+            user.Organization = scimUser.EnterpriseUser.Organization;
+        }
+
         await _userRepository.AddAsync(user);
 
         return Created($"api/scim/v2/Users/{user.Id}", MapToScimUser(user));
@@ -170,6 +181,17 @@ public class ScimController : ControllerBase
             if (existing != null && existing.Id != user.Id)
                 return Conflict(new ScimError { Status = "409", Detail = "Email already taken" });
             user.Email = scimUser.UserName;
+        }
+
+        // Map Enterprise User attributes
+        if (scimUser.EnterpriseUser != null)
+        {
+            user.Department = scimUser.EnterpriseUser.Department;
+            user.Division = scimUser.EnterpriseUser.Division;
+            user.JobTitle = scimUser.EnterpriseUser.Organization;
+            user.EmployeeNumber = scimUser.EnterpriseUser.EmployeeNumber;
+            user.CostCenter = scimUser.EnterpriseUser.CostCenter;
+            user.Organization = scimUser.EnterpriseUser.Organization;
         }
 
         await _userRepository.UpdateAsync(user);
@@ -274,14 +296,26 @@ public class ScimController : ControllerBase
 
     private ScimUser MapToScimUser(User user)
     {
-        return new ScimUser
+        var scimUser = new ScimUser
         {
+            Schemas = [
+                "urn:ietf:params:scim:schemas:core:2.0:User",
+                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+            ],
             Id = user.Id.ToString(),
             ExternalId = user.ExternalId,
             UserName = user.Email,
             DisplayName = user.Name,
             Active = user.IsActive,
             Emails = new List<ScimEmail> { new ScimEmail { Value = user.Email } },
+            EnterpriseUser = new ScimEnterpriseUser
+            {
+                Department = user.Department,
+                Division = user.Division,
+                EmployeeNumber = user.EmployeeNumber,
+                CostCenter = user.CostCenter,
+                Organization = user.Organization
+            },
             Meta = new ScimMeta
             {
                 ResourceType = "User",
@@ -290,6 +324,7 @@ public class ScimController : ControllerBase
                 Location = $"/api/scim/v2/Users/{user.Id}"
             }
         };
+        return scimUser;
     }
 
     private ScimGroup MapToScimGroup(Group group)

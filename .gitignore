@@ -122,3 +122,8 @@ staticwebassets.build.json
 *.db-shm
 *.db-wal
 migrations.sql
+
+# IdP certificates
+*.cert
+*.pem
+docker/idp_cert.*

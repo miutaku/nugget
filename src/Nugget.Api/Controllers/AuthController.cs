@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nugget.Core.Interfaces;
+using Nugget.Core.Entities;
 using System.Security.Claims;
 
 namespace Nugget.Api.Controllers;
@@ -30,14 +31,32 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // ClaimsTransformation によって追加された Guid 形式の NameIdentifier を優先的に探す
+        var userId = User.FindAll(ClaimTypes.NameIdentifier)
+                         .Select(c => c.Value)
+                         .FirstOrDefault(v => Guid.TryParse(v, out _));
         
-        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+        if (string.IsNullOrEmpty(userId))
+        {
+            // GuidがなければSAMLから直接渡された文字列（メールなど）を試用
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+
+        if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }
 
-        var user = await _userRepository.GetByIdAsync(userGuid, cancellationToken);
+        User? user = null;
+        if (Guid.TryParse(userId, out var userGuid))
+        {
+            user = await _userRepository.GetByIdAsync(userGuid, cancellationToken);
+        }
+        else
+        {
+            // それでもダメなら Email で直接検索
+            user = await _userRepository.GetByEmailAsync(userId, cancellationToken);
+        }
         
         if (user == null)
         {
@@ -69,7 +88,7 @@ public class AuthController : ControllerBase
     /// <summary>
     /// ログアウト
     /// </summary>
-    [HttpPost("logout")]
+    [HttpGet("logout")]
     [Authorize]
     public IActionResult Logout()
     {

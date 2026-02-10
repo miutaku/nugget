@@ -118,7 +118,19 @@
                                 <Icon Name="IconName.Filter" Size="16" />
                                 グループ指定
                             </span>
-                            <span class="radio-desc">特定のグループに割り当てます（Phase 2で対応予定）</span>
+                            <span class="radio-desc">特定のグループに割り当てます</span>
+                        </label>
+                        <label class="radio-option @(model.TargetType == "Attribute" ? "selected" : "")">
+                            <input type="radio" 
+                                   name="targetType" 
+                                   value="Attribute" 
+                                   checked="@(model.TargetType == "Attribute")"
+                                   @onchange="@(() => { model.TargetType = "Attribute"; })" />
+                            <span class="radio-label">
+                                <Icon Name="IconName.Filter" Size="16" />
+                                属性指定
+                            </span>
+                            <span class="radio-desc">部署や役職などの属性で対象を絞り込みます</span>
                         </label>
                     </div>
                 </div>
@@ -141,6 +153,39 @@
                         {
                             <span class="validation-message">グループを選択してください</span>
                         }
+                    </div>
+                }
+
+                @if (model.TargetType == "Attribute")
+                {
+                    <div class="form-group">
+                        <label for="attributeKey">属性キー <span class="required">*</span></label>
+                        <select id="attributeKey"
+                                class="form-control"
+                                value="@model.TargetAttributeKey"
+                                @onchange="HandleAttributeKeyChange">
+                            <option value="">-- 属性を選択してください --</option>
+                            <option value="Department">部署 (Department)</option>
+                            <option value="Division">事業部 (Division)</option>
+                            <option value="JobTitle">役職 (Job Title)</option>
+                            <option value="Organization">組織 (Organization)</option>
+                            <option value="CostCenter">コストセンター (Cost Center)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="attributeValue">属性値 <span class="required">*</span></label>
+                        <input type="text"
+                               id="attributeValue"
+                               list="attributeValueSuggestions"
+                               @bind="model.TargetAttributeValue"
+                               placeholder="例: 営業部" />
+                        <datalist id="attributeValueSuggestions">
+                            @foreach (var val in attributeValues)
+                            {
+                                <option value="@val" />
+                            }
+                        </datalist>
+                        <span class="form-hint">選択した属性に合致するユーザーが対象となります</span>
                     </div>
                 }
             </div>
@@ -188,6 +233,7 @@
     private bool isSuccess = false;
     private string? errorMessage;
     private List<GroupDto> groups = new();
+    private List<string> attributeValues = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,6 +303,25 @@
         }
     }
 
+    private async Task HandleAttributeKeyChange(ChangeEventArgs e)
+    {
+        model.TargetAttributeKey = e.Value?.ToString();
+        model.TargetAttributeValue = null;
+        attributeValues = new();
+
+        if (!string.IsNullOrEmpty(model.TargetAttributeKey))
+        {
+            try
+            {
+                attributeValues = await AdminApi.GetAttributeValuesAsync(model.TargetAttributeKey);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to load attribute values: {ex.Message}");
+            }
+        }
+    }
+
     private void ToggleReminderDay(int day, bool isChecked)
     {
         if (isChecked)
@@ -279,6 +344,9 @@
         if (model.DueDate < DateTime.Today) return false;
         
         if (model.TargetType == "Group" && model.TargetGroupId == null) return false;
+        if (model.TargetType == "Attribute" && 
+            (string.IsNullOrEmpty(model.TargetAttributeKey) || string.IsNullOrEmpty(model.TargetAttributeValue)))
+            return false;
 
         return true;
     }
@@ -286,6 +354,7 @@
     private void CreateAnother()
     {
         model = new CreateTodoModel();
+        attributeValues = new();
         isSuccess = false;
     }
 

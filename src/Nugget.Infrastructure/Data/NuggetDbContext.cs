@@ -35,6 +35,12 @@ public class NuggetDbContext : DbContext
             entity.Property(e => e.Role).HasColumnName("role").HasConversion<string>();
             entity.Property(e => e.SamlNameId).HasColumnName("saml_name_id").HasMaxLength(512);
             entity.Property(e => e.ExternalId).HasColumnName("external_id").HasMaxLength(256);
+            entity.Property(e => e.Department).HasColumnName("department").HasMaxLength(256);
+            entity.Property(e => e.Division).HasColumnName("division").HasMaxLength(256);
+            entity.Property(e => e.JobTitle).HasColumnName("job_title").HasMaxLength(256);
+            entity.Property(e => e.EmployeeNumber).HasColumnName("employee_number").HasMaxLength(128);
+            entity.Property(e => e.CostCenter).HasColumnName("cost_center").HasMaxLength(256);
+            entity.Property(e => e.Organization).HasColumnName("organization").HasMaxLength(256);
             entity.Property(e => e.IsActive).HasColumnName("is_active").HasDefaultValue(true);
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
@@ -42,6 +48,7 @@ public class NuggetDbContext : DbContext
             entity.HasIndex(e => e.Email).IsUnique();
             entity.HasIndex(e => e.SamlNameId);
             entity.HasIndex(e => e.ExternalId);
+            entity.HasIndex(e => e.Department);
         });
 
         // Todo configuration
@@ -57,6 +64,8 @@ public class NuggetDbContext : DbContext
             entity.Property(e => e.TargetType).HasColumnName("target_type").HasConversion<string>();
             entity.Property(e => e.TargetGroupName).HasColumnName("target_group_name").HasMaxLength(256);
             entity.Property(e => e.TargetGroupId).HasColumnName("target_group_id");
+            entity.Property(e => e.TargetAttributeKey).HasColumnName("target_attribute_key").HasMaxLength(64);
+            entity.Property(e => e.TargetAttributeValue).HasColumnName("target_attribute_value").HasMaxLength(256);
             entity.Property(e => e.NotifyImmediately).HasColumnName("notify_immediately").HasDefaultValue(true);
             entity.Property(e => e.ReminderDays).HasColumnName("reminder_days");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");

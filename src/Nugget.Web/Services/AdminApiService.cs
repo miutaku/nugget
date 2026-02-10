@@ -28,6 +28,8 @@ public class AdminApiService
             targetType = model.TargetType,
             targetGroupName = model.TargetGroupName,
             targetGroupId = model.TargetGroupId,
+            targetAttributeKey = model.TargetAttributeKey,
+            targetAttributeValue = model.TargetAttributeValue,
             notifyImmediately = model.NotifyImmediately,
             reminderDays = model.ReminderDays.ToArray()
         };
@@ -43,10 +45,26 @@ public class AdminApiService
     }
 
     /// <summary>
+    /// 作成したToDoの進捗一覧を取得
+    /// </summary>
+    public async Task<List<CreatedTodoProgressResponse>> GetCreatedTodosProgressAsync()
+    {
+        return await _httpClient.GetFromJsonAsync<List<CreatedTodoProgressResponse>>("api/todos/created") ?? new List<CreatedTodoProgressResponse>();
+    }
+
+    /// <summary>
     /// グループ一覧を取得
     /// </summary>
     public async Task<List<GroupDto>> GetGroupsAsync()
     {
         return await _httpClient.GetFromJsonAsync<List<GroupDto>>("api/groups") ?? new List<GroupDto>();
+    }
+
+    /// <summary>
+    /// 属性値一覧を取得
+    /// </summary>
+    public async Task<List<string>> GetAttributeValuesAsync(string attributeKey)
+    {
+        return await _httpClient.GetFromJsonAsync<List<string>>($"api/todos/attribute-values?key={attributeKey}") ?? new List<string>();
     }
 }

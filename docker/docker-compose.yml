@@ -16,12 +16,17 @@ services:
       - Saml__IdpEntityId=${SAML_IDP_ENTITY_ID:-}
       - Saml__IdpSsoUrl=${SAML_IDP_SSO_URL:-}
       - Saml__IdpMetadataUrl=${SAML_IDP_METADATA_URL:-}
+      - Saml__IdpCertificatePath=${SAML_IDP_CERTIFICATE_PATH:-}
+      - SAML_ADMIN_EMAILS=${SAML_ADMIN_EMAILS:-}
       - Scim__ApiToken=${SCIM_API_TOKEN:-}
       - Cors__AllowedOrigins__0=http://localhost:5173
       - Cors__AllowedOrigins__1=http://localhost:5000
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./idp_cert.cert:/app/idp_cert.cert:ro
+      - keys_data:/app/keys
     networks:
       - nugget-network
 
@@ -57,6 +62,7 @@ services:
 
 volumes:
   postgres_data:
+  keys_data:
 
 networks:
   nugget-network:

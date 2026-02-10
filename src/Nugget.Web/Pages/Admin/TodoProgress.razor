@@ -1,0 +1,413 @@
+@page "/admin/todos/progress"
+@attribute [Authorize(Roles = "Admin")]
+@using Nugget.Web.Models
+@using Nugget.Web.Services
+@inject AdminApiService AdminApi
+@inject NavigationManager Navigation
+
+<PageTitle>ToDo進捗管理 - Nugget</PageTitle>
+
+<div class="page-container progress-page">
+    <header class="page-header">
+        <h1>
+            <span class="bi bi-list-check" style="background-size: 28px; width: 28px; height: 28px; display: inline-block; vertical-align: middle; margin-right: 10px;"></span>
+            ToDo進捗管理
+        </h1>
+        <p class="subtitle">自分が作成したToDoの配信・完了状況を確認します</p>
+    </header>
+
+    <div class="filter-controls">
+        <label class="filter-label">表示対象:</label>
+        <div class="select-wrapper">
+            <select value="@statusFilter" @onchange="OnFilterChanged">
+                <option value="all">全員</option>
+                <option value="incomplete">未完了</option>
+                <option value="completed">完了</option>
+            </select>
+            <span class="bi bi-chevron-down select-icon"></span>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>読み込み中...</p>
+        </div>
+    }
+    else if (progressData == null || !progressData.Any())
+    {
+        <div class="empty-state">
+            <Icon Name="IconName.Clipboard" Size="48" />
+            <p>まだToDoを作成していません。</p>
+            <button class="btn-primary" @onclick='() => Navigation.NavigateTo("/admin/todos/create")'>
+                ToDoを作成する
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="progress-list">
+            @foreach (var todo in progressData)
+            {
+                <div class="progress-item @(expandedTodoId == todo.TodoId ? "expanded" : "")">
+                    <div class="item-header" @onclick="() => ToggleExpand(todo.TodoId)">
+                        <div class="item-main-info">
+                            <span class="item-title">@todo.Title</span>
+                            <span class="item-due">期限: @todo.DueDate.ToString("yyyy/MM/dd HH:mm")</span>
+                        </div>
+                        <div class="item-stats">
+                            <div class="rate-info">
+                                <span class="rate-value">@Math.Round(todo.CompletionRate)%</span>
+                                <span class="count-info">@todo.CompletedCount / @todo.TotalAssigned 完了</span>
+                            </div>
+                            <div class="progress-mini-bar">
+                                <div class="progress-fill" style="width: @todo.CompletionRate%"></div>
+                            </div>
+                            <span class="expand-icon bi @(expandedTodoId == todo.TodoId ? "bi-chevron-up" : "bi-chevron-down")"></span>
+                        </div>
+                    </div>
+
+                    @if (expandedTodoId == todo.TodoId)
+                    {
+                        <div class="item-details">
+                            <table class="details-table">
+                                <thead>
+                                    <tr>
+                                        <th>氏名</th>
+                                        <th>メールアドレス</th>
+                                        <th>ステータス</th>
+                                        <th>完了日時</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        var filteredAssignments = GetFilteredAssignments(todo);
+                                    }
+                                    @if (!filteredAssignments.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="no-data">該当するユーザーはいません</td>
+                                        </tr>
+                                    }
+                                    @foreach (var assignment in filteredAssignments)
+                                    {
+                                        <tr class="@(assignment.IsCompleted ? "completed" : "pending")">
+                                            <td>@assignment.UserName</td>
+                                            <td>@assignment.UserEmail</td>
+                                            <td>
+                                                @if (assignment.IsCompleted)
+                                                {
+                                                    <span class="status-badge completed">完了</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="status-badge pending">未完了</span>
+                                                }
+                                            </td>
+                                            <td>@(assignment.CompletedAt?.ToString("yyyy/MM/dd HH:mm") ?? "-")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .progress-page {
+        max-width: 900px;
+    }
+
+    .filter-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        justify-content: flex-end;
+    }
+
+    .filter-label {
+        font-weight: 500;
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .select-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    .select-wrapper select {
+        appearance: none;
+        background-color: var(--color-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 0.5rem 2rem 0.5rem 1rem;
+        font-size: 0.9rem;
+        color: var(--color-text);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .select-wrapper select:hover {
+        border-color: var(--color-primary);
+    }
+
+    .select-wrapper select:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .select-icon {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+    }
+
+    .progress-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .progress-item {
+        background: var(--color-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        border: 1px solid var(--color-border);
+        transition: all 0.2s ease;
+    }
+
+    .progress-item.expanded {
+        box-shadow: var(--shadow-md);
+    }
+
+    .item-header {
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .item-header:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .item-main-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .item-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    .item-due {
+        font-size: 0.875rem;
+        color: var(--color-text-muted);
+    }
+
+    .item-stats {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .rate-info {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .rate-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--color-primary);
+        line-height: 1.2;
+    }
+
+    .count-info {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+    }
+
+    .progress-mini-bar {
+        width: 120px;
+        height: 8px;
+        background: var(--color-bg);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--color-primary), #3b82f6);
+        border-radius: 4px;
+    }
+
+    .expand-icon {
+        color: var(--color-text-muted);
+        font-size: 1.25rem;
+    }
+
+    .item-details {
+        padding: 0 1.5rem 1.5rem;
+        border-top: 1px solid var(--color-border);
+        background-color: rgba(0, 0, 0, 0.01);
+    }
+
+    .details-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.875rem;
+    }
+
+    .details-table th {
+        text-align: left;
+        padding: 0.75rem;
+        color: var(--color-text-muted);
+        font-weight: 500;
+        border-bottom: 2px solid var(--color-border);
+    }
+
+    .details-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .details-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .details-table .no-data {
+        text-align: center;
+        color: var(--color-text-muted);
+        padding: 2rem;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.625rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-badge.completed {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .status-badge.pending {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .pending {
+        background-color: rgba(239, 68, 68, 0.02);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--color-card);
+        border-radius: var(--radius-lg);
+        color: var(--color-text-muted);
+    }
+
+    .empty-state p {
+        margin: 1rem 0 1.5rem;
+        font-size: 1.125rem;
+    }
+
+    @@media (max-width: 640px) {
+        .item-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .item-stats {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .progress-mini-bar {
+            flex: 1;
+            max-width: 150px;
+        }
+
+        .details-table th:nth-child(2),
+        .details-table td:nth-child(2) {
+            display: none;
+        }
+    }
+</style>
+
+@code {
+    private List<CreatedTodoProgressResponse>? progressData;
+    private bool isLoading = true;
+    private Guid? expandedTodoId;
+    private string statusFilter = "all";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            progressData = await AdminApi.GetCreatedTodosProgressAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading progress: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ToggleExpand(Guid todoId)
+    {
+        if (expandedTodoId == todoId)
+        {
+            expandedTodoId = null;
+        }
+        else
+        {
+            expandedTodoId = todoId;
+        }
+    }
+
+    private void OnFilterChanged(ChangeEventArgs e)
+    {
+        statusFilter = e.Value?.ToString() ?? "all";
+    }
+
+    private IEnumerable<TodoAssignmentProgressDto> GetFilteredAssignments(CreatedTodoProgressResponse todo)
+    {
+        if (todo.Assignments == null) return Enumerable.Empty<TodoAssignmentProgressDto>();
+
+        return statusFilter switch
+        {
+            "completed" => todo.Assignments.Where(a => a.IsCompleted),
+            "incomplete" => todo.Assignments.Where(a => !a.IsCompleted),
+            _ => todo.Assignments
+        };
+    }
+}

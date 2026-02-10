@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Nugget.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Nugget.Infrastructure.Data;
 namespace Nugget.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(NuggetDbContext))]
-    partial class NuggetDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260210190529_AddScimEnterpriseAttributes")]
+    partial class AddScimEnterpriseAttributes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
