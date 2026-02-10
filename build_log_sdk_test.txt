@@ -1,0 +1,75 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.02kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for mcr.microsoft.com/dotnet/sdk:10.0
+#2 DONE 0.3s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 192B done
+#3 DONE 0.0s
+
+#4 [build 1/4] FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:89e985253248c1211e8440b82db775fd3d3c73c915ceb96766495bce050d385f
+#4 resolve mcr.microsoft.com/dotnet/sdk:10.0@sha256:89e985253248c1211e8440b82db775fd3d3c73c915ceb96766495bce050d385f 0.0s done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 26.68kB 0.0s done
+#5 DONE 0.0s
+
+#6 [build 2/4] WORKDIR /app
+#6 CACHED
+
+#7 [build 3/4] COPY . .
+#7 DONE 0.2s
+
+#8 [build 4/4] RUN dotnet restore Nugget.slnx
+#8 1.048   Determining projects to restore...
+#8 1.573   Restored /app/src/Nugget.Core/Nugget.Core.csproj (in 73 ms).
+#8 8.990   Restored /app/src/Nugget.Infrastructure/Nugget.Infrastructure.csproj (in 6.23 sec).
+#8 9.001   Restored /app/tests/Nugget.Core.Tests/Nugget.Core.Tests.csproj (in 6.23 sec).
+#8 9.011   Restored /app/src/Nugget.Web/Nugget.Web.csproj (in 6.23 sec).
+#8 9.020   Restored /app/tests/Nugget.Infrastructure.Tests/Nugget.Infrastructure.Tests.csproj (in 6.23 sec).
+#8 9.028   Restored /app/src/Nugget.Api/Nugget.Api.csproj (in 6.28 sec).
+#8 9.039   Restored /app/tests/Nugget.Api.Tests/Nugget.Api.Tests.csproj (in 6.23 sec).
+#8 DONE 9.6s
+
+#9 [test 1/2] RUN dotnet build src/Nugget.Api/Nugget.Api.csproj -c Release --no-restore
+#9 3.828   Nugget.Core -> /app/src/Nugget.Core/bin/Release/net10.0/Nugget.Core.dll
+#9 4.457   Nugget.Infrastructure -> /app/src/Nugget.Infrastructure/bin/Release/net10.0/Nugget.Infrastructure.dll
+#9 4.620 CSC : error CS2021: File name '**/*.cs' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#9 4.620 CSC : error CS2001: Source file '**/*.cs' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#9 4.630 
+#9 4.631 Build FAILED.
+#9 4.631 
+#9 4.631 CSC : error CS2021: File name '**/*.cs' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#9 4.631 CSC : error CS2001: Source file '**/*.cs' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#9 4.631     0 Warning(s)
+#9 4.631     2 Error(s)
+#9 4.631 
+#9 4.631 Time Elapsed 00:00:03.98
+#9 ERROR: process "/bin/sh -c dotnet build src/Nugget.Api/Nugget.Api.csproj -c Release --no-restore" did not complete successfully: exit code: 1
+------
+ > [test 1/2] RUN dotnet build src/Nugget.Api/Nugget.Api.csproj -c Release --no-restore:
+4.620 CSC : error CS2001: Source file '**/*.cs' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+4.630 
+4.631 Build FAILED.
+4.631 
+4.631 CSC : error CS2021: File name '**/*.cs' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+4.631 CSC : error CS2001: Source file '**/*.cs' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+4.631     0 Warning(s)
+4.631     2 Error(s)
+4.631 
+4.631 Time Elapsed 00:00:03.98
+------
+Dockerfile:13
+--------------------
+  11 |     # Test stage
+  12 |     FROM build AS test
+  13 | >>> RUN dotnet build src/Nugget.Api/Nugget.Api.csproj -c Release --no-restore
+  14 |     RUN dotnet test Nugget.slnx -c Release --no-restore
+  15 |     
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c dotnet build src/Nugget.Api/Nugget.Api.csproj -c Release --no-restore" did not complete successfully: exit code: 1
