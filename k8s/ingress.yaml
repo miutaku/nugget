@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nugget-ingress
+  namespace: nugget
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # API へのプロキシ設定
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - nugget.example.com
+      secretName: nugget-tls
+  rules:
+    - host: nugget.example.com
+      http:
+        paths:
+          # /api, /health, /.well-known は API に転送
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: nugget-api
+                port:
+                  number: 8080
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: nugget-api
+                port:
+                  number: 8080
+          - path: /.well-known
+            pathType: Prefix
+            backend:
+              service:
+                name: nugget-api
+                port:
+                  number: 8080
+          # それ以外は Web (Blazor WASM) に転送
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nugget-web
+                port:
+                  number: 80

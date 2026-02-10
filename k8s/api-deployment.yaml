@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nugget-api
+  namespace: nugget
+  labels:
+    app: nugget-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nugget-api
+  template:
+    metadata:
+      labels:
+        app: nugget-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/miutaku/nugget/nugget-api:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: nugget-config
+                  key: ASPNETCORE_ENVIRONMENT
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: nugget-secrets
+                  key: DATABASE_CONNECTION_STRING
+            - name: Saml__IdpEntityId
+              valueFrom:
+                secretKeyRef:
+                  name: nugget-secrets
+                  key: SAML_IDP_ENTITY_ID
+            - name: Saml__IdpSsoUrl
+              valueFrom:
+                secretKeyRef:
+                  name: nugget-secrets
+                  key: SAML_IDP_SSO_URL
+            - name: Saml__IdpMetadataUrl
+              valueFrom:
+                secretKeyRef:
+                  name: nugget-secrets
+                  key: SAML_IDP_METADATA_URL
+            - name: Saml__IdpCertificatePath
+              value: "/app/certs/idp_cert.cert"
+            - name: Saml__EntityId
+              valueFrom:
+                configMapKeyRef:
+                  name: nugget-config
+                  key: APP_URL
+            - name: Saml__ReturnUrl
+              valueFrom:
+                configMapKeyRef:
+                  name: nugget-config
+                  key: APP_URL
+            - name: SAML_ADMIN_EMAILS
+              valueFrom:
+                secretKeyRef:
+                  name: nugget-secrets
+                  key: SAML_ADMIN_EMAILS
+            - name: Scim__ApiToken
+              valueFrom:
+                secretKeyRef:
+                  name: nugget-secrets
+                  key: SCIM_API_TOKEN
+            - name: Slack__BotToken
+              valueFrom:
+                secretKeyRef:
+                  name: nugget-secrets
+                  key: SLACK_BOT_TOKEN
+            - name: Slack__AppUrl
+              valueFrom:
+                configMapKeyRef:
+                  name: nugget-config
+                  key: APP_URL
+            - name: Cors__AllowedOrigins__0
+              valueFrom:
+                configMapKeyRef:
+                  name: nugget-config
+                  key: APP_URL
+          volumeMounts:
+            - name: idp-cert
+              mountPath: /app/certs
+              readOnly: true
+            - name: data-protection-keys
+              mountPath: /app/keys
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+      volumes:
+        - name: idp-cert
+          secret:
+            secretName: nugget-idp-cert
+        - name: data-protection-keys
+          persistentVolumeClaim:
+            claimName: nugget-keys-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nugget-keys-pvc
+  namespace: nugget
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi

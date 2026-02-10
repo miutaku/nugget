@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Nugget.Api.DTOs;
 using Nugget.Core.Entities;
 using Nugget.Core.Enums;
@@ -17,7 +18,11 @@ public class TodoService
     private readonly IUserRepository _userRepository;
     private readonly IGroupRepository _groupRepository;
     private readonly INotificationService _notificationService;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<TodoService> _logger;
+
+    private static readonly TimeSpan UserTodoCacheDuration = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan TargetUsersCacheDuration = TimeSpan.FromMinutes(5);
 
     public TodoService(
         NuggetDbContext context,
@@ -25,6 +30,7 @@ public class TodoService
         IUserRepository userRepository,
         IGroupRepository groupRepository,
         INotificationService notificationService,
+        IMemoryCache cache,
         ILogger<TodoService> logger)
     {
         _context = context;
@@ -32,8 +38,12 @@ public class TodoService
         _userRepository = userRepository;
         _groupRepository = groupRepository;
         _notificationService = notificationService;
+        _cache = cache;
         _logger = logger;
     }
+
+    private static string UserTodoCacheKey(Guid userId) => $"user-todos:{userId}";
+    private static string TodoTargetsCacheKey(Guid todoId) => $"todo-targets:{todoId}";
 
     /// <summary>
     /// 自分のToDo一覧を取得
@@ -133,6 +143,12 @@ public class TodoService
         }
 
         await _todoRepository.AddAsync(todo, cancellationToken);
+
+        // 対象ユーザーのキャッシュを無効化
+        foreach (var user in targetUsers)
+        {
+            _cache.Remove(UserTodoCacheKey(user.Id));
+        }
 
         _logger.LogInformation("ToDoを作成しました: TodoId={TodoId}, Title={Title}, TargetUsers={TargetUserCount}",
             todo.Id, todo.Title, targetUsers.Count);
@@ -234,6 +250,9 @@ public class TodoService
 
         await _context.SaveChangesAsync(cancellationToken);
 
+        // キャッシュ無効化
+        _cache.Remove(UserTodoCacheKey(userId));
+
         _logger.LogInformation("ToDoを完了しました: TodoId={TodoId}, UserId={UserId}", todoId, userId);
 
         return true;
@@ -259,6 +278,9 @@ public class TodoService
         assignment.CompletedAt = null;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // キャッシュ無効化
+        _cache.Remove(UserTodoCacheKey(userId));
 
         _logger.LogInformation("ToDoの完了を取り消しました: TodoId={TodoId}, UserId={UserId}", todoId, userId);
 

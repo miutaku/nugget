@@ -1,0 +1,34 @@
+services:
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY:-miutaku/nugget}/nugget-api:${IMAGE_TAG:-latest}
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=${DATABASE_CONNECTION_STRING}
+      - Slack__BotToken=${SLACK_BOT_TOKEN}
+      - Slack__AppUrl=${APP_URL}
+      - Saml__EntityId=${APP_URL}
+      - Saml__ReturnUrl=${APP_URL}
+      - Saml__IdpEntityId=${SAML_IDP_ENTITY_ID}
+      - Saml__IdpSsoUrl=${SAML_IDP_SSO_URL}
+      - Saml__IdpMetadataUrl=${SAML_IDP_METADATA_URL:-}
+      - Saml__IdpCertificatePath=/app/idp_cert.cert
+      - SAML_ADMIN_EMAILS=${SAML_ADMIN_EMAILS}
+      - Scim__ApiToken=${SCIM_API_TOKEN}
+      - Cors__AllowedOrigins__0=${APP_URL}
+    volumes:
+      - ./idp_cert.cert:/app/idp_cert.cert:ro
+      - keys_data:/app/keys
+    restart: unless-stopped
+
+  web:
+    image: ghcr.io/${GITHUB_REPOSITORY:-miutaku/nugget}/nugget-web:${IMAGE_TAG:-latest}
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  keys_data:

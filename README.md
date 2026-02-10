@@ -21,13 +21,14 @@
 
 - **Backend**: .NET / ASP.NET Core Web API
 - **Frontend**: Blazor WebAssembly
-- **Database**: PostgreSQL 16
-- **Cache**: Redis (予定)
+- **Database**: TiDB (MySQL互換 NewSQL)
+- **Cache**: IMemoryCache (インメモリキャッシュ)
 - **Container**: Docker / Docker Compose
 
-## クイックスタート (Docker)
+## ローカル開発環境 (Docker)
 
 Docker Composeを使用して、ローカル環境ですぐにアプリケーションを起動できます。
+開発環境では TiDB がコンテナとして同梱されます。
 
 ### 1. リポジトリのクローン
 ```bash
@@ -57,6 +58,69 @@ docker compose up -d
 - **フロントエンド**: http://localhost:5173
 - **API**: http://localhost:5000
 
+## 本番デプロイ
+
+本番環境では GHCR に公開されたイメージと、外部の TiDB（TiDB Serverless 等）を使用します。
+
+### 1. 環境変数の設定
+`.env` に本番用の値を設定します。特に `DATABASE_CONNECTION_STRING` に外部 TiDB の接続文字列を指定してください。
+
+```bash
+cd docker
+cp .env.example .env
+# 以下の値を本番用に設定:
+# DATABASE_CONNECTION_STRING=Server=<tidb-host>;Port=4000;Database=nugget;User=<user>;Password=<password>;SslMode=Required;
+# APP_URL=https://your-domain.com
+# IMAGE_TAG=v1.0.0
+```
+
+### 2. デプロイ
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+| 構成 | 用途 | TiDB | イメージ |
+|------|------|------|---------|
+| `docker-compose.yml` | 開発環境 | コンテナ同梱 | ローカルビルド |
+| `docker-compose.prod.yml` | 本番 (Docker Compose) | 外部 (TiDB Serverless等) | GHCR |
+| `k8s/` | 本番 (Kubernetes) | 外部 (TiDB Serverless等) | GHCR |
+
+## Kubernetes デプロイ
+
+`k8s/` ディレクトリに Kubernetes マニフェストを用意しています。
+
+### 1. Secret の設定
+`k8s/secret.yaml` の値を環境に合わせて編集します。
+
+```bash
+vim k8s/secret.yaml
+# DATABASE_CONNECTION_STRING, SCIM_API_TOKEN 等を設定
+```
+
+### 2. IdP 証明書の登録
+```bash
+kubectl create secret generic nugget-idp-cert \
+  --from-file=idp_cert.cert=docker/idp_cert.cert \
+  -n nugget
+```
+
+### 3. マニフェストの適用
+```bash
+kubectl apply -f k8s/
+```
+
+### マニフェスト一覧
+
+| ファイル | 内容 |
+|---------|------|
+| `namespace.yaml` | `nugget` Namespace |
+| `configmap.yaml` | 非機密設定 (APP_URL等) |
+| `secret.yaml` | 機密設定 (DB接続, トークン等) |
+| `api-deployment.yaml` | API Deployment (2レプリカ) + PVC |
+| `web-deployment.yaml` | Web Deployment (2レプリカ) |
+| `services.yaml` | API / Web の ClusterIP Service |
+| `ingress.yaml` | Ingress (nginx + cert-manager TLS) |
+
 ## 設定 (Environment Variables)
 
 `docker/.env` で設定可能な環境変数の一覧です。
@@ -79,7 +143,7 @@ docker compose up -d
 | `SLACK_BOT_TOKEN` | ✅ | Slack AppのBot User OAuth Token | `xoxb-...` |
 
 ### データベース接続 (docker-compose.yml内で定義)
-デフォルトでは `docker-compose.yml` 内で `postgres` コンテナへの接続が設定されています。変更が必要な場合は `docker-compose.yml` の `ConnectionStrings__DefaultConnection` を編集してください。
+デフォルトでは `docker-compose.yml` 内で TiDB コンテナへの接続が設定されています。変更が必要な場合は `docker-compose.yml` の `ConnectionStrings__DefaultConnection` を編集してください。
 
 ## SCIM プロビジョニング設定 (例: Okta)
 
@@ -129,9 +193,18 @@ nugget/
 │   └── Nugget.Infrastructure/ # EF Core & External Services
 ├── docker/                  # Docker configuration
 │   ├── .env                 # Environment variables (git-ignored, copy from .env.example)
-│   ├── docker-compose.yml   # Container configuration
+│   ├── docker-compose.yml   # 開発環境用
+│   ├── docker-compose.prod.yml # 本番環境用 (Docker Compose)
 │   ├── Dockerfile           # Multi-stage build definition
 │   └── nginx.conf           # Web server configuration
+├── k8s/                     # Kubernetes マニフェスト
+│   ├── namespace.yaml
+│   ├── configmap.yaml
+│   ├── secret.yaml
+│   ├── api-deployment.yaml
+│   ├── web-deployment.yaml
+│   ├── services.yaml
+│   └── ingress.yaml
 └── tests/                   # Unit Tests
 ```
 
