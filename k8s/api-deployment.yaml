@@ -83,6 +83,11 @@ spec:
                 configMapKeyRef:
                   name: nugget-config
                   key: APP_URL
+            - name: App__OrganizationName
+              valueFrom:
+                configMapKeyRef:
+                  name: nugget-config
+                  key: ORG_NAME
           volumeMounts:
             - name: idp-cert
               mountPath: /app/certs

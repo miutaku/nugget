@@ -16,6 +16,7 @@ public class CreateTodoModel
     public string? TargetAttributeValue { get; set; }
     public bool NotifyImmediately { get; set; } = true;
     public List<int> ReminderDays { get; set; } = [3, 1, 0];
+    public List<Guid>? TargetUserIds { get; set; }
 
     /// <summary>
     /// 期限日時を取得
@@ -57,4 +58,17 @@ public class TodoAssignmentProgressDto
     public string UserEmail { get; set; } = string.Empty;
     public bool IsCompleted { get; set; }
     public DateTime? CompletedAt { get; set; }
+}
+
+public class UserResponse
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Department { get; set; }
+    public string? Division { get; set; }
+}
+public class SystemInfo
+{
+    public string OrganizationName { get; set; } = string.Empty;
 }

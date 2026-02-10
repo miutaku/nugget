@@ -19,6 +19,7 @@ services:
       - Saml__IdpCertificatePath=${SAML_IDP_CERTIFICATE_PATH:-}
       - SAML_ADMIN_EMAILS=${SAML_ADMIN_EMAILS:-}
       - Scim__ApiToken=${SCIM_API_TOKEN:-}
+      - App__OrganizationName=${ORG_NAME:-株式会社Nugget}
       - Cors__AllowedOrigins__0=http://localhost:5173
       - Cors__AllowedOrigins__1=http://localhost:5000
     depends_on:

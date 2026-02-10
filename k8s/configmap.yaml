@@ -6,3 +6,4 @@ metadata:
 data:
   ASPNETCORE_ENVIRONMENT: "Production"
   APP_URL: "https://nugget.example.com"
+  ORG_NAME: "Nugget"

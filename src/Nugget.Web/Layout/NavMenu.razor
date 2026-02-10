@@ -1,6 +1,13 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Nugget</a>
+﻿@inject AdminApiService AdminApi
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid branding-container">
+        <div class="brand-group">
+            <a class="navbar-brand" href="">Nugget</a>
+            @if (!string.IsNullOrEmpty(orgName))
+            {
+                <span class="org-tag">@orgName</span>
+            }
+        </div>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -35,6 +42,11 @@
                         <span class="bi bi-list-check-nav-menu" aria-hidden="true"></span> 進捗管理
                     </NavLink>
                 </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="users">
+                        <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> ユーザー一覧
+                    </NavLink>
+                </div>
             </Authorized>
         </AuthorizeView>
         <div class="nav-item px-3">
@@ -47,11 +59,58 @@
 
 @code {
     private bool collapseNavMenu = true;
+    private string? orgName;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var info = await AdminApi.GetSystemInfoAsync();
+        orgName = info?.OrganizationName;
+    }
 
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
     }
 }
+
+<style>
+    .branding-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: nowrap;
+        width: 100%;
+        padding-right: 1.5rem;
+    }
+
+    .brand-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .navbar-brand {
+        margin-right: 0 !important;
+        flex-shrink: 0;
+    }
+
+    .org-tag {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        white-space: nowrap;
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+
+</style>

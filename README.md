@@ -135,6 +135,7 @@ kubectl apply -f k8s/
 | `SAML_IDP_CERTIFICATE_PATH`| | コンテナ内の証明書パス | `/app/idp_cert.cert` |
 | `SAML_ADMIN_EMAILS` | ✅ | 管理者権限を付与するメールアドレス (カンマ区切り) | `admin@example.com,user@example.com` |
 | `SCIM_API_TOKEN` | ✅ | SCIM API認証用トークン (任意の文字列) | (ランダムな文字列を生成してください) |
+| `ORG_NAME` | | 組織名（ヘッダーに表示されます） | `株式会社Nugget` |
 
 ### 通知 (Slack)
 
@@ -181,6 +182,19 @@ SCIM Enterprise User Schema (`urn:ietf:params:scim:schemas:extension:enterprise:
 | `organization` | 組織 | 組織単位での割り当て |
 | `costCenter` | コストセンター | コストセンター単位での割り当て |
 | `employeeNumber` | 社員番号 | 個人の識別 |
+
+## ユーザー名の同期仕様
+
+Nugget では、以下のルールに基づいてユーザーの氏名（表示名）を決定・更新します。
+
+### 1. 自動作成時の挙動 (SAML / SCIM)
+- データベースにユーザーが存在しない状態で認証（SAML）または同期（SCIM）が行われた場合、ユーザーが自動作成されます。
+- SAML ログインによる自動作成時は、氏名は一律で **「不明な氏名」** となります（氏名情報は SCIM からのみ提供される想定のため）。
+- SCIM 同期による自動作成時は、リクエストに含まれる `displayName` が設定されます（未設定時は「不明な氏名」）。
+
+### 2. SCIM による情報の更新
+- 既に「不明な氏名」で登録されているユーザー（SAML で初回ログインしたユーザーや、`SAML_ADMIN_EMAILS`でAdminとして指定したユーザー等）
+  に対しても、SCIM 経由で `displayName` が送信されたタイミングで、正しい氏名に自動更新されます。
 
 ## ディレクトリ構成
 

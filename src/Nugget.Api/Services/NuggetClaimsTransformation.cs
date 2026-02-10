@@ -57,9 +57,7 @@ public class NuggetClaimsTransformation : IClaimsTransformation
             // 初回ログイン時: ユーザーを自動作成
             _logger.LogInformation("User {Email} not found in database. Auto-creating on first SAML login.", nameId);
             
-            var displayName = principal.FindFirstValue(ClaimTypes.Name)
-                           ?? principal.FindFirstValue("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname")
-                           ?? nameId;
+            var displayName = "不明な氏名";
 
             user = new User
             {

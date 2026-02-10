@@ -136,7 +136,7 @@ public class ScimController : ControllerBase
         var user = new User
         {
             Email = scimUser.UserName,
-            Name = scimUser.DisplayName,
+            Name = GetBestName(scimUser),
             ExternalId = scimUser.ExternalId,
             IsActive = scimUser.Active,
             CreatedAt = DateTime.UtcNow,
@@ -171,7 +171,7 @@ public class ScimController : ControllerBase
         if (user == null)
             return NotFound(new ScimError { Status = "404", Detail = "Resource not found" });
 
-        user.Name = scimUser.DisplayName;
+        user.Name = GetBestName(scimUser);
         user.ExternalId = scimUser.ExternalId;
         user.IsActive = scimUser.Active;
         // Email update might be sensitive, checking if changed
@@ -292,6 +292,14 @@ public class ScimController : ControllerBase
         var updatedGroup = await _groupRepository.GetByIdAsync(group.Id);
 
         return Ok(MapToScimGroup(updatedGroup!));
+    }
+
+    private string GetBestName(ScimUser scimUser)
+    {
+        if (!string.IsNullOrWhiteSpace(scimUser.DisplayName))
+            return scimUser.DisplayName;
+
+        return "不明な氏名";
     }
 
     private ScimUser MapToScimUser(User user)

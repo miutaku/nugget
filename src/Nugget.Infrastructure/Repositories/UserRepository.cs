@@ -67,18 +67,38 @@ public class UserRepository : IUserRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<User>> SearchUsersAsync(string query, CancellationToken cancellationToken = default)
+    {
+        var q = _context.Users.Where(u => u.IsActive);
+        
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var lowerQuery = query.ToLower();
+            q = q.Where(u => 
+                u.Name.ToLower().Contains(lowerQuery) || 
+                u.Email.ToLower().Contains(lowerQuery) ||
+                (u.Department != null && u.Department.ToLower().Contains(lowerQuery)) ||
+                (u.Division != null && u.Division.ToLower().Contains(lowerQuery)) ||
+                (u.JobTitle != null && u.JobTitle.ToLower().Contains(lowerQuery))
+            );
+        }
+
+        return await q.OrderBy(u => u.Name).ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<User>> GetUsersByAttributeAsync(string attributeKey, string attributeValue, CancellationToken cancellationToken = default)
     {
         var query = _context.Users.Where(u => u.IsActive);
+        var lowerValue = attributeValue.ToLower();
 
         query = attributeKey.ToLowerInvariant() switch
         {
-            "department" => query.Where(u => u.Department == attributeValue),
-            "division" => query.Where(u => u.Division == attributeValue),
-            "jobtitle" => query.Where(u => u.JobTitle == attributeValue),
-            "employeenumber" => query.Where(u => u.EmployeeNumber == attributeValue),
-            "costcenter" => query.Where(u => u.CostCenter == attributeValue),
-            "organization" => query.Where(u => u.Organization == attributeValue),
+            "department" => query.Where(u => u.Department != null && u.Department.ToLower().Contains(lowerValue)),
+            "division" => query.Where(u => u.Division != null && u.Division.ToLower().Contains(lowerValue)),
+            "jobtitle" => query.Where(u => u.JobTitle != null && u.JobTitle.ToLower().Contains(lowerValue)),
+            "employeenumber" => query.Where(u => u.EmployeeNumber != null && u.EmployeeNumber.ToLower().Contains(lowerValue)),
+            "costcenter" => query.Where(u => u.CostCenter != null && u.CostCenter.ToLower().Contains(lowerValue)),
+            "organization" => query.Where(u => u.Organization != null && u.Organization.ToLower().Contains(lowerValue)),
             _ => query.Where(u => false) // Unknown attribute returns no results
         };
 

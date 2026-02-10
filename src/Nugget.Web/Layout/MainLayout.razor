@@ -49,8 +49,7 @@
 
     private string GetRoleBackgroundColor(System.Security.Claims.ClaimsPrincipal user)
     {
-        if (user.IsInRole("Admin")) return "#ef4444"; // 管理者は赤色バッジで表示
-        return "#f3f4f6"; // 一般ユーザーはグレー
+        return user.IsInRole("Admin") ? "#ef4444" : "#f3f4f6"; // 管理者は赤色バッジ
     }
 
     private string GetRoleStyle(System.Security.Claims.ClaimsPrincipal user)

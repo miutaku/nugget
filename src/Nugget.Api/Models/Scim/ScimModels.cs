@@ -35,7 +35,7 @@ public class ScimUser
     public string UserName { get; set; } = string.Empty;
     
     [JsonPropertyName("displayName")]
-    public string DisplayName { get; set; } = string.Empty;
+    public string? DisplayName { get; set; }
     
     [JsonPropertyName("active")]
     public bool Active { get; set; }

@@ -43,9 +43,14 @@ public interface IUserRepository
     Task UpdateAsync(User user, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 属性値でアクティブユーザーを検索
+    /// 属性値でアクティブユーザーを検索（部分一致）
     /// </summary>
     Task<IReadOnlyList<User>> GetUsersByAttributeAsync(string attributeKey, string attributeValue, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// ユーザーを検索（名前、メールアドレス、属性など）
+    /// </summary>
+    Task<IReadOnlyList<User>> SearchUsersAsync(string query, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 指定された属性キーのユニークな値一覧を取得

@@ -17,6 +17,7 @@ services:
       - SAML_ADMIN_EMAILS=${SAML_ADMIN_EMAILS}
       - Scim__ApiToken=${SCIM_API_TOKEN}
       - Cors__AllowedOrigins__0=${APP_URL}
+      - App__OrganizationName=${ORG_NAME:-Nugget}
     volumes:
       - ./idp_cert.cert:/app/idp_cert.cert:ro
       - keys_data:/app/keys

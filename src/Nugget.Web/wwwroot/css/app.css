@@ -167,6 +167,38 @@ h1:focus {
     background: var(--color-bg);
     font-size: 0.875rem;
     transition: all 0.2s ease;
+    flex: 1;
+    min-width: 0;
+}
+
+.search-button {
+    padding: 0.5rem 1rem;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+
+.search-button:hover {
+    background: var(--color-primary-dark);
+}
+
+.search-group.with-button {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0;
+    max-width: 600px;
+}
+
+.search-group input,
+.form-group .search-group input[type="text"],
+.form-group .search-group input.form-control {
+    padding-left: 2.5rem !important;
 }
 
 .search-group input:focus {
@@ -541,6 +573,7 @@ h1:focus {
     align-items: center;
     gap: 0.5rem;
     color: var(--color-text);
+    min-width: 0;
 }
 
 .user-name {
@@ -809,8 +842,6 @@ a,
     justify-content: flex-end;
     gap: 1rem;
     margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--color-border);
 }
 
 .btn-primary,
@@ -918,4 +949,12 @@ a,
     .success-actions {
         flex-direction: column;
     }
+}
+
+/* Table Utilities */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
 }

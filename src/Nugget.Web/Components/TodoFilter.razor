@@ -22,12 +22,16 @@
             </button>
         </div>
     </div>
-    <div class="search-group">
+    <div class="search-group with-button">
         <Icon Name="IconName.Search" Size="16" Class="search-icon" />
         <input type="text" 
                placeholder="タイトルや詳細で検索..." 
                value="@CurrentSearchTerm" 
-               @oninput="OnSearchInput" />
+               @oninput="OnSearchInput"
+               @onkeyup="OnSearchKeyUp" />
+        <button class="search-button" @onclick="TriggerSearch">
+            検索
+        </button>
     </div>
 
     <div class="sort-group">
@@ -72,6 +76,19 @@
     private async Task OnSearchInput(ChangeEventArgs e)
     {
         CurrentSearchTerm = e.Value?.ToString();
+        await OnSearchTermChanged.InvokeAsync(CurrentSearchTerm);
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await TriggerSearch();
+        }
+    }
+
+    private async Task TriggerSearch()
+    {
         await OnSearchTermChanged.InvokeAsync(CurrentSearchTerm);
     }
 }
