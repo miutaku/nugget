@@ -1,0 +1,127 @@
+@page "/logged-out"
+@layout NavMenu
+@using Nugget.Web.Components
+
+<div class="logged-out-container">
+    <div class="logout-card">
+        <div class="icon-header">
+            <div class="check-circle">
+                <Icon Name="IconName.Check" Size="32" />
+            </div>
+        </div>
+        
+        <h1>ログアウトしました</h1>
+        
+        <p class="description">
+            Nuggetから安全にログアウトされました。
+        </p>
+        
+        <div class="info-box">
+            <p>
+                再度ログインする場合は、下のボタンをクリックしてください。<br />
+                クリックすると、お使いのPCやブラウザで現在ログインしている会社の共通アカウント<br />
+                （OktaやMicrosoft Entra IDなど）を使用して、そのままログインできます。
+            </p>
+        </div>
+        
+        <div class="actions">
+            <a href="api/auth/login" class="btn btn-primary btn-lg login-btn">
+                ログイン画面へ
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .logged-out-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - 7rem);
+        padding: 2rem;
+        background-color: #f8fafc;
+    }
+
+    .logout-card {
+        background: white;
+        padding: 3rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 5px 10px rgba(0, 0, 0, 0.03);
+        max-width: 600px;
+        width: 100%;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+    }
+
+    .icon-header {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+
+    .check-circle {
+        width: 64px;
+        height: 64px;
+        background-color: #f0fdf4;
+        color: #22c55e;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 1rem;
+    }
+
+    .description {
+        color: #64748b;
+        font-size: 1.125rem;
+        margin-bottom: 2rem;
+    }
+
+    .info-box {
+        background-color: #f1f5f9;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2.5rem;
+        text-align: left;
+    }
+
+    .info-box p {
+        color: #334155;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 0;
+    }
+
+    .login-btn {
+        width: 100%;
+        padding: 1rem;
+        font-weight: 600;
+        font-size: 1.125rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (max-width: 640px) {
+        .logout-card {
+            padding: 2rem 1.5rem;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+        }
+        
+        .description {
+            font-size: 1rem;
+        }
+    }
+</style>

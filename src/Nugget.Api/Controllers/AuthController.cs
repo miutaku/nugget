@@ -96,7 +96,7 @@ public class AuthController : ControllerBase
         return SignOut(
             new Microsoft.AspNetCore.Authentication.AuthenticationProperties
             {
-                RedirectUri = "/"
+                RedirectUri = "/logged-out"
             },
             Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
     }
