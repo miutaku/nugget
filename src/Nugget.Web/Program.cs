@@ -21,5 +21,7 @@ builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
 // Register services
 builder.Services.AddScoped<TodoApiService>();
 builder.Services.AddScoped<AdminApiService>();
+builder.Services.AddScoped<SettingApiService>();
+builder.Services.AddScoped<StatsApiService>();
 
 await builder.Build().RunAsync();

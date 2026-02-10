@@ -126,13 +126,21 @@
                 @if (model.TargetType == "Group")
                 {
                     <div class="form-group">
-                        <label for="groupName">グループ名</label>
-                        <input type="text" 
-                               id="groupName" 
-                               @bind="model.TargetGroupName" 
-                               placeholder="グループ名を入力"
-                               disabled />
-                        <span class="form-hint">グループ機能はPhase 2で実装予定です</span>
+                        <label for="groupSelect">グループ選択</label>
+                        <select id="groupSelect" 
+                                class="form-control"
+                                value="@model.TargetGroupId"
+                                @onchange="HandleGroupChange">
+                            <option value="">-- グループを選択してください --</option>
+                            @foreach (var group in groups)
+                            {
+                                <option value="@group.Id">@group.DisplayName (@group.MemberCount 名)</option>
+                            }
+                        </select>
+                        @if (model.TargetGroupId == null)
+                        {
+                            <span class="validation-message">グループを選択してください</span>
+                        }
                     </div>
                 }
             </div>
@@ -179,6 +187,19 @@
     private bool isSubmitting = false;
     private bool isSuccess = false;
     private string? errorMessage;
+    private List<GroupDto> groups = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            groups = await AdminApi.GetGroupsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load groups: {ex.Message}");
+        }
+    }
 
     private async Task HandleSubmit()
     {
@@ -220,6 +241,21 @@
             model.DueTime = time;
         }
     }
+    
+    private void HandleGroupChange(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var groupId))
+        {
+            model.TargetGroupId = groupId;
+            var group = groups.FirstOrDefault(g => g.Id == groupId);
+            model.TargetGroupName = group?.DisplayName;
+        }
+        else
+        {
+            model.TargetGroupId = null;
+            model.TargetGroupName = null;
+        }
+    }
 
     private void ToggleReminderDay(int day, bool isChecked)
     {
@@ -239,8 +275,12 @@
 
     private bool IsFormValid()
     {
-        return !string.IsNullOrWhiteSpace(model.Title) 
-            && model.DueDate >= DateTime.Today;
+        if (string.IsNullOrWhiteSpace(model.Title)) return false;
+        if (model.DueDate < DateTime.Today) return false;
+        
+        if (model.TargetType == "Group" && model.TargetGroupId == null) return false;
+
+        return true;
     }
 
     private void CreateAnother()

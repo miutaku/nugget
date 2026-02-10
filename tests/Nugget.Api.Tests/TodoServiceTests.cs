@@ -14,13 +14,16 @@ public class TodoServiceTests
 {
     private readonly Mock<ITodoRepository> _todoRepositoryMock;
     private readonly Mock<IUserRepository> _userRepositoryMock;
+    private readonly Mock<IGroupRepository> _groupRepositoryMock;
     private readonly Mock<INotificationService> _notificationServiceMock;
     private readonly Mock<ILogger<TodoService>> _loggerMock;
+
 
     public TodoServiceTests()
     {
         _todoRepositoryMock = new Mock<ITodoRepository>();
         _userRepositoryMock = new Mock<IUserRepository>();
+        _groupRepositoryMock = new Mock<IGroupRepository>();
         _notificationServiceMock = new Mock<INotificationService>();
         _loggerMock = new Mock<ILogger<TodoService>>();
     }
@@ -40,6 +43,7 @@ public class TodoServiceTests
             context,
             _todoRepositoryMock.Object,
             _userRepositoryMock.Object,
+            _groupRepositoryMock.Object,
             _notificationServiceMock.Object,
             _loggerMock.Object);
     }

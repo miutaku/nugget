@@ -1,0 +1,173 @@
+@page "/settings/notifications"
+@attribute [Authorize]
+@inject SettingApiService SettingApi
+@inject NavigationManager Navigation
+
+<PageTitle>通知設定 - Nugget</PageTitle>
+
+<div class="page-container">
+    <header class="page-header">
+        <h1>
+            <Icon Name="IconName.Bell" Size="28" Class="header-icon" />
+            通知設定
+        </h1>
+        <p class="subtitle">ToDoの期限前通知やSlack連携の設定を行います</p>
+    </header>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>読み込み中...</p>
+        </div>
+    }
+    else
+    {
+        <div class="todo-form">
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="success-banner" style="display: flex; align-items: center; gap: 0.5rem; padding: 1rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); color: var(--color-success); margin-bottom: 1.5rem;">
+                    <Icon Name="IconName.CheckCircle" Size="16" />
+                    @successMessage
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-banner">
+                    <Icon Name="IconName.AlertCircle" Size="16" />
+                    @errorMessage
+                </div>
+            }
+
+            <div class="form-section">
+                <h3>リマインダー設定</h3>
+                <p class="form-hint">ToDoの期限が近づいた際に通知を受け取るタイミングを選択してください。</p>
+                
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>期限の何日前に通知するか</label>
+                    <div class="reminder-options">
+                        @foreach (var day in allAvailableDays)
+                        {
+                            <label class="checkbox-pill @(model.DaysBeforeDue.Contains(day) ? "selected" : "")">
+                                <input type="checkbox" 
+                                       checked="@model.DaysBeforeDue.Contains(day)"
+                                       @onchange="@(e => ToggleReminderDay(day, (bool)(e.Value ?? false)))" />
+                                @(day == 0 ? "当日" : $"{day}日前")
+                            </label>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label for="notificationHour">通知を受け取る時刻</label>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <select id="notificationHour" @bind="model.NotificationHour" class="form-control" style="width: auto; padding: 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+                            @for (int i = 0; i < 24; i++)
+                            {
+                                <option value="@i">@($"{i:D2}:00")</option>
+                            }
+                        </select>
+                        <span class="form-hint">※バックグラウンド実行のタイミングにより多少前後する場合があります。</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Slack連携</h3>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="model.SlackNotificationEnabled" />
+                        <span>Slackでの通知を有効にする</span>
+                    </label>
+                    <p class="form-hint">オフにするとSlackへの通知は送信されません。</p>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" @onclick="GoBack">戻る</button>
+                <button type="button" class="btn-primary" @onclick="HandleSave" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <div class="loading-spinner-sm"></div>
+                        <span>保存中...</span>
+                    }
+                    else
+                    {
+                        <Icon Name="IconName.Check" Size="16" />
+                        <span>設定を保存</span>
+                    }
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private NotificationSettingModel model = new();
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private string? successMessage;
+    private string? errorMessage;
+    private int[] allAvailableDays = { 14, 7, 3, 1, 0 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await SettingApi.GetNotificationSettingsAsync();
+        if (settings != null)
+        {
+            model = settings;
+        }
+        else
+        {
+            // デフォルト設定
+            model = new NotificationSettingModel
+            {
+                DaysBeforeDue = new List<int> { 7, 3, 1, 0 },
+                SlackNotificationEnabled = true,
+                NotificationHour = 9
+            };
+        }
+        isLoading = false;
+    }
+
+    private void ToggleReminderDay(int day, bool isChecked)
+    {
+        if (isChecked)
+        {
+            if (!model.DaysBeforeDue.Contains(day))
+            {
+                model.DaysBeforeDue.Add(day);
+                model.DaysBeforeDue.Sort((a, b) => b.CompareTo(a));
+            }
+        }
+        else
+        {
+            model.DaysBeforeDue.Remove(day);
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        isSaving = true;
+        successMessage = null;
+        errorMessage = null;
+
+        var success = await SettingApi.UpdateNotificationSettingsAsync(model);
+        if (success)
+        {
+            successMessage = "通知設定を保存しました。";
+        }
+        else
+        {
+            errorMessage = "設定の保存に失敗しました。";
+        }
+
+        isSaving = false;
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

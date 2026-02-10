@@ -16,6 +16,7 @@ services:
       - Saml__IdpEntityId=${SAML_IDP_ENTITY_ID:-}
       - Saml__IdpSsoUrl=${SAML_IDP_SSO_URL:-}
       - Saml__IdpMetadataUrl=${SAML_IDP_METADATA_URL:-}
+      - Scim__ApiToken=${SCIM_API_TOKEN:-}
       - Cors__AllowedOrigins__0=http://localhost:5173
       - Cors__AllowedOrigins__1=http://localhost:5000
     depends_on:

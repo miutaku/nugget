@@ -22,6 +22,39 @@ namespace Nugget.Infrastructure.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Nugget.Core.Entities.Group", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("display_name");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("external_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExternalId");
+
+                    b.ToTable("groups", (string)null);
+                });
+
             modelBuilder.Entity("Nugget.Core.Entities.NotificationSetting", b =>
                 {
                     b.Property<Guid>("Id")
@@ -100,6 +133,10 @@ namespace Nugget.Infrastructure.Data.Migrations
                         .HasColumnType("integer[]")
                         .HasColumnName("reminder_days");
 
+                    b.Property<Guid?>("TargetGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_group_id");
+
                     b.Property<string>("TargetGroupName")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
@@ -125,6 +162,8 @@ namespace Nugget.Infrastructure.Data.Migrations
                     b.HasIndex("CreatedById");
 
                     b.HasIndex("DueDate");
+
+                    b.HasIndex("TargetGroupId");
 
                     b.ToTable("todos", (string)null);
                 });
@@ -237,6 +276,23 @@ namespace Nugget.Infrastructure.Data.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("Nugget.Core.Entities.UserGroup", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.HasKey("UserId", "GroupId");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("user_groups", (string)null);
+                });
+
             modelBuilder.Entity("Nugget.Core.Entities.NotificationSetting", b =>
                 {
                     b.HasOne("Nugget.Core.Entities.User", "User")
@@ -256,7 +312,14 @@ namespace Nugget.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Nugget.Core.Entities.Group", "TargetGroup")
+                        .WithMany()
+                        .HasForeignKey("TargetGroupId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("TargetGroup");
                 });
 
             modelBuilder.Entity("Nugget.Core.Entities.TodoAssignment", b =>
@@ -278,6 +341,30 @@ namespace Nugget.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Nugget.Core.Entities.UserGroup", b =>
+                {
+                    b.HasOne("Nugget.Core.Entities.Group", "Group")
+                        .WithMany("UserGroups")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nugget.Core.Entities.User", "User")
+                        .WithMany("UserGroups")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Nugget.Core.Entities.Group", b =>
+                {
+                    b.Navigation("UserGroups");
+                });
+
             modelBuilder.Entity("Nugget.Core.Entities.Todo", b =>
                 {
                     b.Navigation("Assignments");
@@ -290,6 +377,8 @@ namespace Nugget.Infrastructure.Data.Migrations
                     b.Navigation("CreatedTodos");
 
                     b.Navigation("NotificationSetting");
+
+                    b.Navigation("UserGroups");
                 });
 #pragma warning restore 612, 618
         }

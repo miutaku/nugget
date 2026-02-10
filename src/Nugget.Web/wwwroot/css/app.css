@@ -135,6 +135,70 @@ h1:focus {
     font-size: 0.875rem;
 }
 
+.search-group {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+    margin: 0 1.5rem;
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-muted);
+    pointer-events: none;
+}
+
+.search-group input {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.search-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    background: white;
+}
+
+@media (max-width: 768px) {
+    .todo-filter {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .search-group {
+        margin: 0.5rem 0;
+        max-width: none;
+        order: -1;
+    }
+
+    .filter-group,
+    .sort-group {
+        justify-content: space-between;
+    }
+
+    .filter-buttons {
+        flex-wrap: wrap;
+    }
+
+    .filter-buttons button {
+        flex: 1;
+        padding: 0.4rem 0.5rem;
+        font-size: 0.75rem;
+        min-width: 70px;
+        text-align: center;
+    }
+}
+
 .filter-buttons {
     display: flex;
     gap: 0.5rem;
@@ -191,6 +255,13 @@ h1:focus {
     color: var(--color-danger);
 }
 
+@media (max-width: 480px) {
+    .todo-summary {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}
+
 /* ===== Todo List ===== */
 .todo-list {
     display: flex;
@@ -225,6 +296,29 @@ h1:focus {
 .todo-item.status-today {
     border-left-color: var(--color-danger);
     background: #fef2f2;
+}
+
+@media (max-width: 600px) {
+    .todo-item {
+        padding: 1rem;
+        gap: 0.75rem;
+    }
+
+    .todo-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .todo-badge {
+        order: -1;
+    }
+
+    .todo-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
 }
 
 .todo-item.status-overdue {

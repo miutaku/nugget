@@ -33,11 +33,12 @@ public class TodosController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<MyTodoAssignmentResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyTodos(
         [FromQuery] bool? isCompleted = null,
+        [FromQuery] string? searchTerm = null,
         [FromQuery] string sortBy = "dueDate",
         CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var todos = await _todoService.GetMyTodosAsync(userId, isCompleted, sortBy, cancellationToken);
+        var todos = await _todoService.GetMyTodosAsync(userId, isCompleted, searchTerm, sortBy, cancellationToken);
         return Ok(todos);
     }
 

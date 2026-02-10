@@ -11,6 +11,7 @@ public class CreateTodoModel
     public TimeSpan DueTime { get; set; } = new TimeSpan(17, 0, 0);
     public string TargetType { get; set; } = "All";
     public string? TargetGroupName { get; set; }
+    public Guid? TargetGroupId { get; set; }
     public bool NotifyImmediately { get; set; } = true;
     public List<int> ReminderDays { get; set; } = [3, 1, 0];
 
@@ -27,4 +28,11 @@ public class CreateTodoResult
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
+}
+
+public class GroupDto
+{
+    public Guid Id { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public int MemberCount { get; set; }
 }

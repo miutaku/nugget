@@ -23,6 +23,11 @@ public interface IUserRepository
     Task<User?> GetBySamlNameIdAsync(string samlNameId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// SCIM External IDでユーザーを取得
+    /// </summary>
+    Task<User?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 全アクティブユーザーを取得
     /// </summary>
     Task<IReadOnlyList<User>> GetAllActiveUsersAsync(CancellationToken cancellationToken = default);

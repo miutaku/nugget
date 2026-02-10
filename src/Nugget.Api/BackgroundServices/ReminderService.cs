@@ -49,93 +49,77 @@ public class ReminderService : BackgroundService
         var now = DateTime.UtcNow;
         var currentHour = now.Hour;
 
-        // 最大リマインダー日数（デフォルト設定の最大値）
-        const int maxDaysAhead = 7;
-
-        // 期限が近いToDoを取得
-        var todos = await dbContext.Todos
-            .Include(t => t.Assignments)
-                .ThenInclude(a => a.User)
-                    .ThenInclude(u => u!.NotificationSetting)
-            .Where(t => t.DueDate.Date <= now.Date.AddDays(maxDaysAhead))
-            .Where(t => t.DueDate.Date >= now.Date)
-            .Where(t => t.Assignments.Any(a => !a.IsCompleted))
+        // 通知対象のユーザーを取得（現在の時刻が通知設定時刻と一致するユーザー）
+        var usersToNotify = await dbContext.Users
+            .Include(u => u.NotificationSetting)
+            .Where(u => u.IsActive && u.SlackUserId != null)
+            .Where(u => (u.NotificationSetting != null && u.NotificationSetting.NotificationHour == currentHour) 
+                     || (u.NotificationSetting == null && currentHour == 9)) // デフォルトは9時
             .ToListAsync(cancellationToken);
 
-        _logger.LogInformation("リマインダー対象のToDo数: {Count}", todos.Count);
+        _logger.LogInformation("現在の時刻 ({Hour}時) に通知対象のユーザー数: {Count}", currentHour, usersToNotify.Count);
 
-        foreach (var todo in todos)
+        foreach (var user in usersToNotify)
         {
-            var daysUntilDue = (int)(todo.DueDate.Date - now.Date).TotalDays;
-
-            // ToDoに設定されたリマインダー日数に該当するかチェック
-            if (!todo.ReminderDays.Contains(daysUntilDue))
+            // ユーザーの通知設定をチェック
+            var settings = user.NotificationSetting;
+            if (settings != null && !settings.SlackNotificationEnabled)
             {
                 continue;
             }
 
-            foreach (var assignment in todo.Assignments.Where(a => !a.IsCompleted))
+            // ユーザーのリマインダー対象日数（設定がない場合はデフォルト[7, 3, 1, 0]）
+            var userReminderDays = settings?.DaysBeforeDue ?? [7, 3, 1, 0];
+
+            // ユーザーに割り当てられた未完了のToDoを取得（今日まだ通知されていないもの）
+            var assignments = await dbContext.TodoAssignments
+                .Include(a => a.Todo)
+                .Where(a => a.UserId == user.Id && !a.IsCompleted)
+                .Where(a => a.LastNotifiedAt == null || a.LastNotifiedAt.Value.Date < now.Date)
+                .ToListAsync(cancellationToken);
+
+            var itemsToNotify = new List<(Nugget.Core.Entities.Todo Todo, int DaysUntilDue)>();
+
+            foreach (var assignment in assignments)
             {
-                var user = assignment.User;
-                if (user == null || !user.IsActive)
+                var daysUntilDue = (int)(assignment.Todo.DueDate.Date - now.Date).TotalDays;
+
+                // 期限内の場合のみ通知（期限切れは別の仕組みか、ここで含めるか検討が必要だが、一旦0日以上とする）
+                if (daysUntilDue >= 0)
                 {
-                    continue;
-                }
-
-                // ユーザーの通知設定をチェック
-                var notificationSetting = user.NotificationSetting;
-                if (notificationSetting != null)
-                {
-                    // 通知が無効の場合はスキップ
-                    if (!notificationSetting.SlackNotificationEnabled)
+                    // ユーザー設定の日数、またはToDo設定の日数に含まれるかチェック
+                    if (userReminderDays.Contains(daysUntilDue) || assignment.Todo.ReminderDays.Contains(daysUntilDue))
                     {
-                        continue;
-                    }
-
-                    // 通知時刻でない場合はスキップ
-                    if (notificationSetting.NotificationHour != currentHour)
-                    {
-                        continue;
-                    }
-
-                    // ユーザー設定のリマインダー日数に該当しない場合はスキップ
-                    if (!notificationSetting.DaysBeforeDue.Contains(daysUntilDue))
-                    {
-                        continue;
+                        itemsToNotify.Add((assignment.Todo, daysUntilDue));
                     }
                 }
-                else
-                {
-                    // デフォルト: 9時に通知
-                    if (currentHour != 9)
-                    {
-                        continue;
-                    }
-                }
+            }
 
-                // 同じ日に既に通知済みの場合はスキップ
-                if (assignment.LastNotifiedAt?.Date == now.Date)
-                {
-                    continue;
-                }
-
+            if (itemsToNotify.Any())
+            {
                 try
                 {
-                    await notificationService.SendReminderNotificationAsync(todo, user, daysUntilDue, cancellationToken);
+                    await notificationService.SendDailyDigestNotificationAsync(user, itemsToNotify, cancellationToken);
 
-                    // 通知日時を更新
-                    assignment.LastNotifiedAt = now;
+                    // 通知済み日時を更新
+                    foreach (var assignment in assignments)
+                    {
+                        // 通知対象に含まれたToDoの割り当てのみ更新
+                        if (itemsToNotify.Any(i => i.Todo.Id == assignment.TodoId))
+                        {
+                            assignment.LastNotifiedAt = now;
+                        }
+                    }
+                    
                     await dbContext.SaveChangesAsync(cancellationToken);
 
                     _logger.LogInformation(
-                        "リマインダーを送信しました: TodoId={TodoId}, UserId={UserId}, DaysUntilDue={DaysUntilDue}",
-                        todo.Id, user.Id, daysUntilDue);
+                        "ダイジェストリマインダーを送信しました: UserId={UserId}, TodoCount={Count}",
+                        user.Id, itemsToNotify.Count);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex,
-                        "リマインダー送信に失敗しました: TodoId={TodoId}, UserId={UserId}",
-                        todo.Id, user.Id);
+                    _logger.LogError(ex, "ダイジェストリマインダーの送信に失敗しました: UserId={UserId}", user.Id);
                 }
             }
         }

@@ -18,12 +18,17 @@ public class TodoApiService
     /// <summary>
     /// 自分のToDo一覧を取得
     /// </summary>
-    public async Task<List<MyTodoAssignment>> GetMyTodosAsync(bool? isCompleted = null, string sortBy = "dueDate")
+    public async Task<List<MyTodoAssignment>> GetMyTodosAsync(bool? isCompleted = null, string? searchTerm = null, string sortBy = "dueDate")
     {
         var url = $"api/todos/my?sortBy={sortBy}";
         if (isCompleted.HasValue)
         {
             url += $"&isCompleted={isCompleted.Value.ToString().ToLower()}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
         }
 
         var response = await _httpClient.GetFromJsonAsync<List<MyTodoAssignment>>(url);

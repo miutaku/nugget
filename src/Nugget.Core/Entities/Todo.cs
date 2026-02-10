@@ -40,6 +40,12 @@ public class Todo
     public string? TargetGroupName { get; set; }
 
     /// <summary>
+    /// 対象グループID
+    /// </summary>
+    public Guid? TargetGroupId { get; set; }
+    public Group? TargetGroup { get; set; }
+
+    /// <summary>
     /// 即時通知するか
     /// </summary>
     public bool NotifyImmediately { get; set; } = true;

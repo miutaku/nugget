@@ -27,6 +27,7 @@ public class AdminApiService
             dueDate = model.GetDueDateTime(),
             targetType = model.TargetType,
             targetGroupName = model.TargetGroupName,
+            targetGroupId = model.TargetGroupId,
             notifyImmediately = model.NotifyImmediately,
             reminderDays = model.ReminderDays.ToArray()
         };
@@ -39,5 +40,13 @@ public class AdminApiService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// グループ一覧を取得
+    /// </summary>
+    public async Task<List<GroupDto>> GetGroupsAsync()
+    {
+        return await _httpClient.GetFromJsonAsync<List<GroupDto>>("api/groups") ?? new List<GroupDto>();
     }
 }

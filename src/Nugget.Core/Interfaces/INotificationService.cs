@@ -21,4 +21,9 @@ public interface INotificationService
     /// リマインダー通知を送信
     /// </summary>
     Task SendReminderNotificationAsync(Todo todo, User user, int daysUntilDue, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// デイリーダイジェスト通知を送信
+    /// </summary>
+    Task SendDailyDigestNotificationAsync(User user, IEnumerable<(Todo Todo, int DaysUntilDue)> todos, CancellationToken cancellationToken = default);
 }

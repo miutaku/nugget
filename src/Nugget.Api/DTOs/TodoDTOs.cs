@@ -33,6 +33,11 @@ public record CreateTodoRequest
     public string? TargetGroupName { get; init; }
 
     /// <summary>
+    /// 対象グループID
+    /// </summary>
+    public Guid? TargetGroupId { get; init; }
+
+    /// <summary>
     /// 対象ユーザーID（TargetType = Individual の場合）
     /// </summary>
     public List<Guid>? TargetUserIds { get; init; }
@@ -90,6 +95,7 @@ public record TodoResponse
     public DateTime DueDate { get; init; }
     public TargetType TargetType { get; init; }
     public string? TargetGroupName { get; init; }
+    public Guid? TargetGroupId { get; init; }
     public bool NotifyImmediately { get; init; }
     public int[] ReminderDays { get; init; } = [];
     public DateTime CreatedAt { get; init; }

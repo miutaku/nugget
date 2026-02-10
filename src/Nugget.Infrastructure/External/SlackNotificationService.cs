@@ -119,6 +119,33 @@ public class SlackNotificationService : INotificationService
         }
     }
 
+    public async Task SendDailyDigestNotificationAsync(CoreUser user, IEnumerable<(CoreTodo Todo, int DaysUntilDue)> todos, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(user.SlackUserId))
+        {
+            _logger.LogWarning("SlackユーザーIDが設定されていないためダイジェスト通知をスキップ: UserId={UserId}", user.Id);
+            return;
+        }
+
+        var message = BuildDailyDigestMessage(todos);
+
+        try
+        {
+            await _slackClient.Chat.PostMessage(new Message
+            {
+                Channel = user.SlackUserId,
+                Text = message
+            });
+
+            _logger.LogInformation("ダイジェスト通知を送信しました: UserId={UserId}, TodoCount={Count}",
+                user.Id, todos.Count());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ダイジェスト通知の送信に失敗しました: UserId={UserId}", user.Id);
+        }
+    }
+
     private string BuildNewTodoMessage(CoreTodo todo)
     {
         var sb = new System.Text.StringBuilder();
@@ -176,6 +203,38 @@ public class SlackNotificationService : INotificationService
         sb.AppendLine();
         sb.AppendLine($"→ <{_options.AppUrl}|アプリで確認>");
         
+        return sb.ToString();
+    }
+
+    private string BuildDailyDigestMessage(IEnumerable<(CoreTodo Todo, int DaysUntilDue)> todos)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("📅 *本日のToDoまとめ*");
+        sb.AppendLine("期限が近づいているタスクがあります。確認しましょう！");
+        sb.AppendLine();
+
+        foreach (var item in todos.OrderBy(t => t.DaysUntilDue))
+        {
+            var urgencyEmoji = item.DaysUntilDue switch
+            {
+                0 => "🚨",
+                1 => "⚠️",
+                _ => "⏰"
+            };
+
+            var daysLabel = item.DaysUntilDue switch
+            {
+                0 => "*本日期限*",
+                1 => "*明日期限*",
+                _ => $"{item.DaysUntilDue}日前"
+            };
+
+            sb.AppendLine($"{urgencyEmoji} {daysLabel}: {item.Todo.Title} (<{_options.AppUrl}|詳細>)");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine($"→ <{_options.AppUrl}|すべてのToDoを確認>");
+
         return sb.ToString();
     }
 }

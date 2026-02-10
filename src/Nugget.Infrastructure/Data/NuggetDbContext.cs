@@ -16,6 +16,8 @@ public class NuggetDbContext : DbContext
     public DbSet<Todo> Todos => Set<Todo>();
     public DbSet<TodoAssignment> TodoAssignments => Set<TodoAssignment>();
     public DbSet<NotificationSetting> NotificationSettings => Set<NotificationSetting>();
+    public DbSet<Group> Groups => Set<Group>();
+    public DbSet<UserGroup> UserGroups => Set<UserGroup>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +56,7 @@ public class NuggetDbContext : DbContext
             entity.Property(e => e.CreatedById).HasColumnName("created_by");
             entity.Property(e => e.TargetType).HasColumnName("target_type").HasConversion<string>();
             entity.Property(e => e.TargetGroupName).HasColumnName("target_group_name").HasMaxLength(256);
+            entity.Property(e => e.TargetGroupId).HasColumnName("target_group_id");
             entity.Property(e => e.NotifyImmediately).HasColumnName("notify_immediately").HasDefaultValue(true);
             entity.Property(e => e.ReminderDays).HasColumnName("reminder_days");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
@@ -63,6 +66,11 @@ public class NuggetDbContext : DbContext
                 .WithMany(u => u.CreatedTodos)
                 .HasForeignKey(e => e.CreatedById)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.TargetGroup)
+                .WithMany()
+                .HasForeignKey(e => e.TargetGroupId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasIndex(e => e.DueDate);
         });
@@ -112,6 +120,39 @@ public class NuggetDbContext : DbContext
                 .HasForeignKey<NotificationSetting>(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // Group configuration
+        modelBuilder.Entity<Group>(entity =>
+        {
+            entity.ToTable("groups");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.DisplayName).HasColumnName("display_name").HasMaxLength(256).IsRequired();
+            entity.Property(e => e.ExternalId).HasColumnName("external_id").HasMaxLength(256);
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.ExternalId);
+        });
+
+        // UserGroup configuration
+        modelBuilder.Entity<UserGroup>(entity =>
+        {
+            entity.ToTable("user_groups");
+            entity.HasKey(e => new { e.UserId, e.GroupId });
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.GroupId).HasColumnName("group_id");
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.UserGroups)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Group)
+                .WithMany(g => g.UserGroups)
+                .HasForeignKey(e => e.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
     public override int SaveChanges()
@@ -156,6 +197,11 @@ public class NuggetDbContext : DbContext
                     setting.CreatedAt = now;
                     setting.UpdatedAt = now;
                 }
+                else if (entry.Entity is Group group)
+                {
+                    group.CreatedAt = now;
+                    group.UpdatedAt = now;
+                }
             }
             else if (entry.State == EntityState.Modified)
             {
@@ -170,6 +216,10 @@ public class NuggetDbContext : DbContext
                 else if (entry.Entity is NotificationSetting setting)
                 {
                     setting.UpdatedAt = now;
+                }
+                else if (entry.Entity is Group group)
+                {
+                    group.UpdatedAt = now;
                 }
             }
         }

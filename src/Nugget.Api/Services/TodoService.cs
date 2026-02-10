@@ -15,6 +15,7 @@ public class TodoService
     private readonly NuggetDbContext _context;
     private readonly ITodoRepository _todoRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IGroupRepository _groupRepository;
     private readonly INotificationService _notificationService;
     private readonly ILogger<TodoService> _logger;
 
@@ -22,12 +23,14 @@ public class TodoService
         NuggetDbContext context,
         ITodoRepository todoRepository,
         IUserRepository userRepository,
+        IGroupRepository groupRepository,
         INotificationService notificationService,
         ILogger<TodoService> logger)
     {
         _context = context;
         _todoRepository = todoRepository;
         _userRepository = userRepository;
+        _groupRepository = groupRepository;
         _notificationService = notificationService;
         _logger = logger;
     }
@@ -38,6 +41,7 @@ public class TodoService
     public async Task<IReadOnlyList<MyTodoAssignmentResponse>> GetMyTodosAsync(
         Guid userId,
         bool? isCompleted = null,
+        string? searchTerm = null,
         string sortBy = "dueDate",
         CancellationToken cancellationToken = default)
     {
@@ -49,6 +53,14 @@ public class TodoService
         if (isCompleted.HasValue)
         {
             query = query.Where(a => a.IsCompleted == isCompleted.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.ToLower();
+            query = query.Where(a => 
+                a.Todo.Title.ToLower().Contains(term) || 
+                (a.Todo.Description != null && a.Todo.Description.ToLower().Contains(term)));
         }
 
         query = sortBy.ToLower() switch
@@ -96,12 +108,13 @@ public class TodoService
             CreatedById = createdById,
             TargetType = request.TargetType,
             TargetGroupName = request.TargetGroupName,
+            TargetGroupId = request.TargetGroupId,
             NotifyImmediately = request.NotifyImmediately,
             ReminderDays = request.ReminderDays ?? [3, 1, 0]
         };
 
         // 対象ユーザーを取得
-        var targetUsers = await GetTargetUsersAsync(request.TargetType, request.TargetGroupName, request.TargetUserIds, cancellationToken);
+        var targetUsers = await GetTargetUsersAsync(request.TargetType, request.TargetGroupName, request.TargetGroupId, request.TargetUserIds, cancellationToken);
 
         // ToDo割り当てを作成
         foreach (var user in targetUsers)
@@ -250,6 +263,7 @@ public class TodoService
     private async Task<IReadOnlyList<User>> GetTargetUsersAsync(
         TargetType targetType,
         string? targetGroupName,
+        Guid? targetGroupId,
         List<Guid>? targetUserIds,
         CancellationToken cancellationToken)
     {
@@ -259,9 +273,22 @@ public class TodoService
             TargetType.Individual when targetUserIds != null => await _context.Users
                 .Where(u => targetUserIds.Contains(u.Id) && u.IsActive)
                 .ToListAsync(cancellationToken),
-            // TODO: Phase 2でグループ対応を実装
-            TargetType.Group => await _userRepository.GetAllActiveUsersAsync(cancellationToken),
+            TargetType.Group when targetGroupId.HasValue => await GetGroupMembersAsync(targetGroupId.Value, cancellationToken),
             _ => []
         };
+    }
+
+    private async Task<IReadOnlyList<User>> GetGroupMembersAsync(Guid groupId, CancellationToken cancellationToken)
+    {
+        var group = await _groupRepository.GetByIdAsync(groupId, cancellationToken);
+        if (group == null)
+        {
+            return [];
+        }
+        
+        return group.UserGroups
+            .Select(ug => ug.User)
+            .Where(u => u.IsActive)
+            .ToList();
     }
 }

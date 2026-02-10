@@ -19,8 +19,10 @@
     <TodoFilter 
         CurrentFilter="@currentFilter" 
         CurrentSortBy="@currentSortBy"
+        CurrentSearchTerm="@currentSearchTerm"
         OnFilterChanged="HandleFilterChanged"
-        OnSortByChanged="HandleSortChanged" />
+        OnSortByChanged="HandleSortChanged"
+        OnSearchTermChanged="HandleSearchTermChanged" />
 
     @if (isLoading)
     {
@@ -73,8 +75,10 @@
     private IEnumerable<MyTodoAssignment> filteredTodos = [];
     private TodoFilterType currentFilter = TodoFilterType.Incomplete;
     private TodoSortBy currentSortBy = TodoSortBy.DueDate;
+    private string? currentSearchTerm;
     private bool isLoading = true;
     private string? errorMessage;
+    private CancellationTokenSource? searchCts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -89,7 +93,7 @@
         try
         {
             var sortBy = currentSortBy == TodoSortBy.DueDate ? "dueDate" : "createdAt";
-            allTodos = await TodoApi.GetMyTodosAsync(sortBy: sortBy);
+            allTodos = await TodoApi.GetMyTodosAsync(sortBy: sortBy, searchTerm: currentSearchTerm);
             ApplyFilter();
         }
         catch (Exception ex)
@@ -125,6 +129,25 @@
     {
         currentSortBy = sortBy;
         await LoadTodosAsync();
+    }
+
+    private async Task HandleSearchTermChanged(string? searchTerm)
+    {
+        currentSearchTerm = searchTerm;
+        
+        searchCts?.Cancel();
+        searchCts = new CancellationTokenSource();
+        var token = searchCts.Token;
+
+        try
+        {
+            await Task.Delay(500, token);
+            await LoadTodosAsync();
+        }
+        catch (TaskCanceledException)
+        {
+            // Ignore
+        }
     }
 
     private async Task HandleStatusChanged((Guid TodoId, bool IsCompleted) args)

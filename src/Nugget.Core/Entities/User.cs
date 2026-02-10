@@ -51,4 +51,5 @@ public class User
     public NotificationSetting? NotificationSetting { get; set; }
     public ICollection<TodoAssignment> Assignments { get; set; } = new List<TodoAssignment>();
     public ICollection<Todo> CreatedTodos { get; set; } = new List<Todo>();
+    public ICollection<UserGroup> UserGroups { get; set; } = new List<UserGroup>();
 }

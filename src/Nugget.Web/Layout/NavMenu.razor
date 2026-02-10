@@ -17,12 +17,22 @@
         <AuthorizeView Roles="Admin">
             <Authorized>
                 <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/dashboard">
+                        <span class="bi bi-graph-up-nav-menu" aria-hidden="true"></span> 分析ダッシュボード
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
                     <NavLink class="nav-link" href="admin/todos/create">
                         <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> ToDo作成
                     </NavLink>
                 </div>
             </Authorized>
         </AuthorizeView>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="settings/notifications">
+                <span class="bi bi-gear-fill-nav-menu" aria-hidden="true"></span> 通知設定
+            </NavLink>
+        </div>
     </nav>
 </div>
 

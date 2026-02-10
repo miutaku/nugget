@@ -38,6 +38,13 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.SamlNameId == samlNameId, cancellationToken);
     }
 
+    public async Task<User?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .Include(u => u.NotificationSetting)
+            .FirstOrDefaultAsync(u => u.ExternalId == externalId, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<User>> GetAllActiveUsersAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Users
