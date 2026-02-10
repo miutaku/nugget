@@ -2,11 +2,8 @@
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid branding-container">
         <div class="brand-group">
+            <img src="icon-192.png" alt="Nugget Mascot" class="brand-logo" />
             <a class="navbar-brand" href="">Nugget</a>
-            @if (!string.IsNullOrEmpty(orgName))
-            {
-                <span class="org-tag">@orgName</span>
-            }
         </div>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
@@ -96,21 +93,14 @@
     .navbar-brand {
         margin-right: 0 !important;
         flex-shrink: 0;
+        font-weight: 700;
+        letter-spacing: -0.5px;
     }
 
-    .org-tag {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        padding: 0.2rem 0.6rem;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 500;
-        white-space: nowrap;
-        max-width: 150px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+    .brand-logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        flex-shrink: 0;
     }
-
-
 </style>

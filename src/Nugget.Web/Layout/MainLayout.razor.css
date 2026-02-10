@@ -58,6 +58,35 @@ main {
     .user-name {
         word-break: break-all;
     }
+
+    .org-name {
+        order: 2;
+        /* Mobile: Display Org on the right */
+    }
+}
+
+.user-info-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    order: 1;
+}
+
+.org-name {
+    font-weight: 700;
+    color: #334155;
+    white-space: nowrap;
+    order: 0;
+    /* PC: Display Org on the left */
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 @media (min-width: 641px) {

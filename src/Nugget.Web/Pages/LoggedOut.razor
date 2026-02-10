@@ -8,8 +8,8 @@
 <div class="logged-out-container">
     <div class="logout-card">
         <div class="icon-header">
-            <div class="check-circle">
-                <Icon Name="IconName.Check" Size="32" />
+            <div class="mascot-container">
+                <img src="icon-192.png" alt="Nugget Mascot" class="logout-mascot" />
             </div>
         </div>
         
@@ -59,18 +59,26 @@
     .icon-header {
         display: flex;
         justify-content: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
     }
 
-    .check-circle {
-        width: 64px;
-        height: 64px;
-        background-color: #f0fdf4;
-        color: #22c55e;
-        border-radius: 50%;
+    .mascot-container {
+        width: 80px;
+        height: 80px;
+        background: white;
+        border-radius: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        padding: 8px;
+    }
+
+    .logout-mascot {
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        object-fit: cover;
     }
 
     h1 {

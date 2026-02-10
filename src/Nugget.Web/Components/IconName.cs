@@ -19,5 +19,6 @@ public enum IconName
     ArrowDown,
     Refresh,
     Plus,
-    Search
+    Search,
+    Building
 }
