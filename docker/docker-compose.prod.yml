@@ -10,6 +10,7 @@ services:
       - Slack__AppUrl=${APP_URL}
       - Saml__EntityId=${APP_URL}
       - Saml__ReturnUrl=${APP_URL}
+      - Saml__PublicOrigin=${APP_URL}
       - Saml__IdpEntityId=${SAML_IDP_ENTITY_ID}
       - Saml__IdpSsoUrl=${SAML_IDP_SSO_URL}
       - Saml__IdpMetadataUrl=${SAML_IDP_METADATA_URL:-}

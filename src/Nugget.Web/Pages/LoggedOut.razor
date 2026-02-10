@@ -1,6 +1,9 @@
 @page "/logged-out"
-@layout NavMenu
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
 @using Nugget.Web.Components
+
+<PageTitle>ログアウト</PageTitle>
 
 <div class="logged-out-container">
     <div class="logout-card">
@@ -19,13 +22,13 @@
         <div class="info-box">
             <p>
                 再度ログインする場合は、下のボタンをクリックしてください。<br />
-                クリックすると、お使いのPCやブラウザで現在ログインしている会社の共通アカウント<br />
+                クリックすると、お使いのPCやブラウザで現在ログインしている会社の共通アカウント
                 （OktaやMicrosoft Entra IDなど）を使用して、そのままログインできます。
             </p>
         </div>
         
         <div class="actions">
-            <a href="api/auth/login" class="btn btn-primary btn-lg login-btn">
+            <a href="/api/auth/login" class="btn btn-primary btn-lg login-btn">
                 ログイン画面へ
             </a>
         </div>
@@ -111,7 +114,7 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
-    @media (max-width: 640px) {
+    @@media (max-width: 640px) {
         .logout-card {
             padding: 2rem 1.5rem;
         }

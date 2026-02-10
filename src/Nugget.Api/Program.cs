@@ -63,6 +63,18 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.SameSite = SameSiteMode.None; // クロスポート/クロスサイトPOST後の遷移を安定させるため
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
+    options.Events.OnRedirectToLogin = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        }
+        else
+        {
+            context.Response.Redirect(context.RedirectUri);
+        }
+        return Task.CompletedTask;
+    };
 })
 .AddSaml2(options =>
 {
@@ -70,7 +82,9 @@ builder.Services.AddAuthentication(options =>
     
     options.SPOptions.EntityId = new EntityId(samlConfig["EntityId"] ?? "http://localhost:5000");
     options.SPOptions.ReturnUrl = new Uri(samlConfig["ReturnUrl"] ?? "http://localhost:5173");
-    options.SPOptions.PublicOrigin = new Uri("http://localhost:5000");
+    
+    var publicOrigin = samlConfig["PublicOrigin"] ?? samlConfig["EntityId"] ?? "http://localhost:5000";
+    options.SPOptions.PublicOrigin = new Uri(publicOrigin);
     
     // サービスプロバイダー証明書（署名用）
     var spCertPath = samlConfig["SpCertificatePath"];
@@ -181,7 +195,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? ["http://localhost:5173"];
+        var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
         policy.WithOrigins(origins)
             .AllowAnyHeader()
             .AllowAnyMethod()

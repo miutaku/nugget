@@ -14,13 +14,16 @@ namespace Nugget.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IUserRepository _userRepository;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         IUserRepository userRepository,
+        IConfiguration configuration,
         ILogger<AuthController> logger)
     {
         _userRepository = userRepository;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -28,9 +31,13 @@ public class AuthController : ControllerBase
     /// 現在のログインユーザー情報を取得
     /// </summary>
     [HttpGet("me")]
-    [Authorize]
     public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
     {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return Unauthorized();
+        }
+
         // ClaimsTransformation によって追加された Guid 形式の NameIdentifier を優先的に探す
         var userId = User.FindAll(ClaimTypes.NameIdentifier)
                          .Select(c => c.Value)
@@ -76,12 +83,15 @@ public class AuthController : ControllerBase
     /// SAMLログイン開始
     /// </summary>
     [HttpGet("login")]
-    public IActionResult Login([FromQuery] string? returnUrl = "/")
+    public IActionResult Login([FromQuery] string? returnUrl = null)
     {
+        // returnUrl が指定されていない場合は、設定ファイルの Saml:ReturnUrl を使用する
+        var redirectUri = returnUrl ?? _configuration["Saml:ReturnUrl"] ?? "/";
+        
         // SAML認証にチャレンジ
         return Challenge(new Microsoft.AspNetCore.Authentication.AuthenticationProperties
         {
-            RedirectUri = returnUrl
+            RedirectUri = redirectUri
         }, "Saml2");
     }
 
