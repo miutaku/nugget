@@ -1,0 +1,832 @@
+@page "/todos/progress"
+@attribute [Authorize]
+@using Nugget.Web.Models
+@using Nugget.Web.Services
+@inject AdminApiService AdminApi
+@inject NavigationManager Navigation
+
+<PageTitle>ToDo進捗管理 - Nugget</PageTitle>
+
+<div class="page-container progress-page">
+    <header class="page-header">
+        <h1>
+            <Icon Name="IconName.ListCheck" Size="28" Class="header-icon" />
+            ToDo進捗管理
+        </h1>
+        <p class="subtitle">自分が作成したToDoの配信・完了状況を確認します</p>
+    </header>
+
+    <div class="filter-controls">
+        <label class="filter-label">表示対象:</label>
+        <div class="select-wrapper">
+            <select value="@statusFilter" @onchange="OnFilterChanged">
+                <option value="all">全員</option>
+                <option value="incomplete">未完了</option>
+                <option value="completed">完了</option>
+            </select>
+            <Icon Name="IconName.ChevronDown" Size="16" Class="select-icon" />
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>読み込み中...</p>
+        </div>
+    }
+    else if (progressData == null || !progressData.Any())
+    {
+        <div class="empty-state">
+            <Icon Name="IconName.Clipboard" Size="48" />
+            <p>まだToDoを作成していません。</p>
+            <button class="btn-primary" @onclick='() => Navigation.NavigateTo("/todos/create")'>
+                ToDoを作成する
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="progress-list">
+            @foreach (var todo in progressData)
+            {
+                <div class="progress-item @(expandedTodoId == todo.TodoId ? "expanded" : "")">
+                    <div class="item-header" @onclick="() => ToggleExpand(todo.TodoId)">
+                        <div class="item-main-info">
+                            <span class="item-title">@todo.Title</span>
+                            <span class="item-due">期限: @todo.DueDate.ToString("yyyy/MM/dd HH:mm")</span>
+                        </div>
+                        <div class="item-stats">
+                            <div class="rate-info">
+                                <span class="rate-value">@Math.Round(todo.CompletionRate)%</span>
+                                <span class="count-info">@todo.CompletedCount / @todo.TotalAssigned 完了</span>
+                            </div>
+                            <div class="progress-mini-bar">
+                                <div class="progress-fill" style="width: @todo.CompletionRate%"></div>
+                            </div>
+                            <div class="item-actions" @onclick:stopPropagation="true">
+                                <button class="action-btn edit" title="編集" @onclick="() => StartEdit(todo)">
+                                    <Icon Name="IconName.Edit" Size="18" />
+                                </button>
+                                <button class="action-btn delete" title="削除" @onclick="() => ConfirmDelete(todo.TodoId, todo.Title)">
+                                    <Icon Name="IconName.Trash" Size="18" />
+                                </button>
+                            </div>
+                            <Icon Name="@(expandedTodoId == todo.TodoId ? IconName.ChevronUp : IconName.ChevronDown)" Size="18" Class="expand-icon" />
+                        </div>
+                    </div>
+
+                    @if (expandedTodoId == todo.TodoId)
+                    {
+                        <div class="item-details">
+                            <table class="details-table">
+                                <thead>
+                                    <tr>
+                                        <th>氏名</th>
+                                        <th>メールアドレス</th>
+                                        <th>ステータス</th>
+                                        <th>完了日時</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        var filteredAssignments = GetFilteredAssignments(todo);
+                                    }
+                                    @if (!filteredAssignments.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="no-data">該当するユーザーはいません</td>
+                                        </tr>
+                                    }
+                                    @foreach (var assignment in filteredAssignments)
+                                    {
+                                        <tr class="@(assignment.IsCompleted ? "completed" : "pending")">
+                                            <td>@assignment.UserName</td>
+                                            <td>@assignment.UserEmail</td>
+                                            <td>
+                                                @if (assignment.IsCompleted)
+                                                {
+                                                    <span class="status-badge completed">完了</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="status-badge pending">未完了</span>
+                                                }
+                                            </td>
+                                            <td>@(assignment.CompletedAt?.ToString("yyyy/MM/dd HH:mm") ?? "-")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (isEditing && editModel != null)
+{
+    <div class="modal-backdrop" @onclick="CancelEdit">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>ToDoの編集</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>タイトル</label>
+                    <input type="text" @bind="editModel.Title" placeholder="タイトルを入力" />
+                </div>
+                <div class="form-group">
+                    <label>内容（任意）</label>
+                    <textarea @bind="editModel.Description" placeholder="詳細を入力"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label>期限日</label>
+                        <input type="date" @bind="editModel.DueDate" />
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>時刻</label>
+                        <input type="time" @bind="editModel.DueTime" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>リマインダー（期限の何日前に通知）</label>
+                    <div class="reminder-options">
+                        @foreach (var day in new[] { 7, 3, 1, 0 })
+                        {
+                            <label class="checkbox-pill @(editModel.ReminderDays.Contains(day) ? "selected" : "")">
+                                <input type="checkbox" 
+                                       checked="@editModel.ReminderDays.Contains(day)"
+                                       @onchange="@(e => ToggleReminderDay(day, (bool)(e.Value ?? false)))" />
+                                @(day == 0 ? "当日" : $"{day}日前")
+                            </label>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="error-message">@errorMessage</div>
+                }
+                <button class="btn-primary" @onclick="SaveEdit" disabled="@isSubmitting">
+                    @if (isSubmitting) { <span class="spinner-small"></span> }
+                    保存する
+                </button>
+                <button class="btn-secondary" @onclick="CancelEdit" disabled="@isSubmitting">キャンセル</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showDeleteConfirm)
+{
+    <div class="modal-backdrop" @onclick="() => showDeleteConfirm = false">
+        <div class="modal-content" @onclick:stopPropagation="true" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>ToDoを削除しますか？</h2>
+            </div>
+            <div class="modal-body">
+                <p>「<strong>@deleteTodoTitle</strong>」を削除してよろしいですか？</p>
+                <p style="color: var(--color-danger); font-size: 0.875rem; margin-top: 0.5rem;">※割り当てられている全ユーザーのリストからも削除されます。Slack通知も送信されます。</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-danger" @onclick="DeleteTodo" disabled="@isSubmitting">
+                    @if (isSubmitting) { <span class="spinner-small"></span> }
+                    削除する
+                </button>
+                <button class="btn-secondary" @onclick="() => showDeleteConfirm = false" disabled="@isSubmitting">キャンセル</button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .progress-page {
+        max-width: 900px;
+    }
+
+    .filter-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        justify-content: flex-end;
+    }
+
+    .filter-label {
+        font-weight: 500;
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .select-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    .select-wrapper select {
+        appearance: none;
+        background-color: var(--color-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 0.5rem 2rem 0.5rem 1rem;
+        font-size: 0.9rem;
+        color: var(--color-text);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .select-wrapper select:hover {
+        border-color: var(--color-primary);
+    }
+
+    .select-wrapper select:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .select-icon {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+    }
+
+    .progress-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .progress-item {
+        background: var(--color-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        border: 1px solid var(--color-border);
+        transition: all 0.2s ease;
+    }
+
+    .progress-item.expanded {
+        box-shadow: var(--shadow-md);
+    }
+
+    .item-header {
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .item-header:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .item-main-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .item-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    .item-due {
+        font-size: 0.875rem;
+        color: var(--color-text-muted);
+    }
+
+    .item-stats {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .rate-info {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .rate-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--color-primary);
+        line-height: 1.2;
+    }
+
+    .count-info {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+    }
+
+    .progress-mini-bar {
+        width: 120px;
+        height: 8px;
+        background: var(--color-bg);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--color-primary), #3b82f6);
+        border-radius: 4px;
+    }
+
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem 2rem;
+        color: var(--color-text-muted);
+    }
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--color-bg);
+        border-top: 3px solid var(--color-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+    }
+
+    .spinner-small {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-right: 0.5rem;
+        vertical-align: middle;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .item-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: 1rem;
+    }
+
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-md);
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        background: var(--color-bg);
+        color: var(--color-text-muted);
+        border: 1px solid var(--color-border);
+        transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+        background-color: var(--color-bg);
+        color: var(--color-text);
+    }
+
+    .action-btn.edit:hover {
+        color: var(--color-primary);
+        background-color: rgba(99, 102, 241, 0.1);
+    }
+
+    .action-btn.delete:hover {
+        color: var(--color-danger);
+        background-color: rgba(239, 68, 68, 0.1);
+    }
+
+    .expand-icon {
+        color: var(--color-text-muted);
+        font-size: 1.25rem;
+    }
+
+    /* Modal Styles */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+        background: var(--color-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
+        width: 100%;
+        max-width: 500px;
+        padding: 2rem;
+        position: relative;
+    }
+
+    .modal-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .modal-header h2 {
+        font-size: 1.5rem;
+        margin: 0;
+        color: var(--color-text);
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .form-group input, .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-bg);
+        color: var(--color-text);
+    }
+
+    .form-group textarea {
+        height: 100px;
+        resize: vertical;
+    }
+
+    .reminder-setting {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .reminder-tag {
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .reminder-tag button {
+        background: none;
+        border: none;
+        color: var(--color-danger);
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .item-details {
+        padding: 0 1.5rem 1.5rem;
+        border-top: 1px solid var(--color-border);
+        background-color: rgba(0, 0, 0, 0.01);
+    }
+
+    .details-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.875rem;
+    }
+
+    .details-table th {
+        text-align: left;
+        padding: 0.75rem;
+        color: var(--color-text-muted);
+        font-weight: 500;
+        border-bottom: 2px solid var(--color-border);
+    }
+
+    .details-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .details-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .details-table .no-data {
+        text-align: center;
+        color: var(--color-text-muted);
+        padding: 2rem;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.625rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-badge.completed {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .status-badge.pending {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .pending {
+        background-color: rgba(239, 68, 68, 0.02);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--color-card);
+        border-radius: var(--radius-lg);
+        color: var(--color-text-muted);
+    }
+
+    .empty-state p {
+        margin: 1rem 0 1.5rem;
+        font-size: 1.125rem;
+    }
+
+    @@media (max-width: 640px) {
+        .item-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .item-stats {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .progress-mini-bar {
+            flex: 1;
+            max-width: 150px;
+        }
+
+        .details-table th:nth-child(2),
+        .details-table td:nth-child(2) {
+            display: none;
+        }
+    }
+
+    .header-icon {
+        vertical-align: middle;
+        margin-right: 10px;
+    }
+
+    .flex-1 {
+        flex: 1;
+    }
+
+    .error-message {
+        background: #fef2f2;
+        color: #991b1b;
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius-md);
+        border: 1px solid #fecaca;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+    }
+
+    .modal-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-top: 2rem;
+    }
+
+    .modal-footer button {
+        width: 100%;
+        justify-content: center;
+    }
+</style>
+
+@code {
+    private List<CreatedTodoProgressResponse>? progressData;
+    private bool isLoading = true;
+    private Guid? expandedTodoId;
+    private string statusFilter = "all";
+    private string? errorMessage;
+    
+    // Edit/Delete state
+    private bool isEditing;
+    private bool showDeleteConfirm;
+    private bool isSubmitting;
+    private UpdateTodoModel? editModel;
+    private Guid? editingTodoId;
+    private Guid? deleteTodoId;
+    private string deleteTodoTitle = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            progressData = await AdminApi.GetCreatedTodosProgressAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "データの読み込みに失敗しました。ページを再読み込みしてください。";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task StartEdit(CreatedTodoProgressResponse todo)
+    {
+        errorMessage = null;
+        isSubmitting = true;
+        try
+        {
+            var fullTodo = await AdminApi.GetTodoAsync(todo.TodoId);
+            if (fullTodo != null)
+            {
+                editingTodoId = todo.TodoId;
+                editModel = new UpdateTodoModel
+                {
+                    Title = fullTodo.Title,
+                    Description = fullTodo.Description,
+                    DueDate = fullTodo.DueDate.Date,
+                    DueTime = TimeOnly.FromTimeSpan(fullTodo.DueDate.TimeOfDay),
+                    NotifyImmediately = fullTodo.NotifyImmediately,
+                    ReminderDays = fullTodo.ReminderDays?.ToList() ?? new List<int>()
+                };
+                isEditing = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "データの取得に失敗しました。";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void CancelEdit()
+    {
+        isEditing = false;
+        editModel = null;
+        editingTodoId = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (editModel == null || editingTodoId == null) return;
+
+        errorMessage = null;
+        isSubmitting = true;
+        try
+        {
+            var success = await AdminApi.UpdateTodoAsync(editingTodoId.Value, editModel);
+            if (success)
+            {
+                await LoadData();
+                CancelEdit();
+            }
+            else
+            {
+                errorMessage = "保存に失敗しました。";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "保存中にエラーが発生しました。";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void ConfirmDelete(Guid todoId, string title)
+    {
+        deleteTodoId = todoId;
+        deleteTodoTitle = title;
+        showDeleteConfirm = true;
+    }
+
+    private async Task DeleteTodo()
+    {
+        if (deleteTodoId == null) return;
+
+        errorMessage = null;
+        isSubmitting = true;
+        try
+        {
+            var success = await AdminApi.DeleteTodoAsync(deleteTodoId.Value);
+            if (success)
+            {
+                await LoadData();
+                showDeleteConfirm = false;
+                deleteTodoId = null;
+            }
+            else
+            {
+                errorMessage = "削除に失敗しました。";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "削除中にエラーが発生しました。";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void ToggleReminderDay(int day, bool isChecked)
+    {
+        if (editModel == null) return;
+
+        if (!isChecked)
+        {
+            editModel.ReminderDays.Remove(day);
+            return;
+        }
+
+        if (!editModel.ReminderDays.Contains(day))
+        {
+            editModel.ReminderDays.Add(day);
+            editModel.ReminderDays.Sort((a, b) => b.CompareTo(a));
+        }
+    }
+
+    private void ToggleExpand(Guid todoId)
+    {
+        if (expandedTodoId == todoId)
+        {
+            expandedTodoId = null;
+        }
+        else
+        {
+            expandedTodoId = todoId;
+        }
+    }
+
+    private void OnFilterChanged(ChangeEventArgs e)
+    {
+        statusFilter = e.Value?.ToString() ?? "all";
+    }
+
+    private IEnumerable<TodoAssignmentProgressDto> GetFilteredAssignments(CreatedTodoProgressResponse todo)
+    {
+        if (todo.Assignments == null) return Enumerable.Empty<TodoAssignmentProgressDto>();
+
+        return statusFilter switch
+        {
+            "completed" => todo.Assignments.Where(a => a.IsCompleted),
+            "incomplete" => todo.Assignments.Where(a => !a.IsCompleted),
+            _ => todo.Assignments
+        };
+    }
+}

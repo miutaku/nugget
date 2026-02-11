@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nugget-config
+  namespace: nugget
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  APP_URL: "https://nugget.example.com"
+  ORG_NAME: "Nugget"

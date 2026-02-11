@@ -1,0 +1,10 @@
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+    {
+        // 現在のURLをリターンURLとして指定してログインページへリダイレクト
+        var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+        Navigation.NavigateTo($"api/auth/login?returnUrl={returnUrl}", forceLoad: true);
+    }
+}

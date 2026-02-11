@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nugget-web
+  namespace: nugget
+  labels:
+    app: nugget-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nugget-web
+  template:
+    metadata:
+      labels:
+        app: nugget-web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/miutaku/nugget/nugget-web:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 30

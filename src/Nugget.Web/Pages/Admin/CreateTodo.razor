@@ -1,0 +1,514 @@
+@page "/todos/create"
+@attribute [Authorize]
+@using Nugget.Web.Components
+@using Nugget.Web.Models
+@using Nugget.Web.Services
+@inject AdminApiService AdminApi
+@inject NavigationManager Navigation
+
+<PageTitle>ToDo作成 - Nugget</PageTitle>
+
+<div class="page-container admin-page">
+    <header class="page-header">
+        <h1>
+            <Icon Name="IconName.Plus" Size="28" Class="header-icon" />
+            新規ToDo作成
+        </h1>
+        <p class="subtitle">全社員または特定の社員にToDoを割り当てます</p>
+    </header>
+
+    @if (isSubmitting)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>作成中...</p>
+        </div>
+    }
+    else if (isSuccess)
+    {
+        <div class="success-message">
+            <Icon Name="IconName.CheckCircle" Size="48" Class="success-icon" />
+            <h2>ToDoを作成しました</h2>
+            <p>「@model.Title」が正常に作成されました。</p>
+            <div class="success-actions">
+                <button class="btn-primary" @onclick="CreateAnother">続けて作成</button>
+                <button class="btn-secondary" @onclick="GoToHome">一覧に戻る</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <form @onsubmit="HandleSubmit" class="todo-form">
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-banner">
+                    <Icon Name="IconName.AlertCircle" Size="16" />
+                    @errorMessage
+                </div>
+            }
+
+            <div class="form-section">
+                <h3>基本情報</h3>
+                
+                <div class="form-group">
+                    <label for="title">タイトル <span class="required">*</span></label>
+                    <input type="text" 
+                           id="title" 
+                           @bind="model.Title" 
+                           placeholder="例: 1月分工数入力" 
+                           required 
+                           maxlength="200" />
+                </div>
+
+                <div class="form-group">
+                    <label for="description">詳細説明</label>
+                    <textarea id="description" 
+                              @bind="model.Description" 
+                              placeholder="ToDoの詳細を入力（任意）"
+                              rows="4"></textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>期限設定</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dueDate">期限日 <span class="required">*</span></label>
+                        <input type="date" 
+                               id="dueDate" 
+                               @bind="model.DueDate" 
+                               required />
+                    </div>
+                    <div class="form-group">
+                        <label for="dueTime">期限時刻</label>
+                        <input type="time" 
+                               id="dueTime" 
+                               value="@model.DueTime.ToString(@"hh\:mm")"
+                               @onchange="HandleTimeChange" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>対象設定</h3>
+                
+                <div class="form-group">
+                    <label>対象範囲</label>
+                    <div class="radio-group">
+                        <label class="radio-option @(model.TargetType == "All" ? "selected" : "")">
+                            <input type="radio" 
+                                   name="targetType" 
+                                   value="All" 
+                                   checked="@(model.TargetType == "All")"
+                                   @onchange="@(() => ChangeTargetType("All"))" />
+                            <span class="radio-label">
+                                <Icon Name="IconName.User" Size="16" />
+                                全社員
+                            </span>
+                            <span class="radio-desc">全社員に割当てます</span>
+                        </label>
+                        <label class="radio-option @(model.TargetType == "Group" ? "selected" : "")">
+                            <input type="radio" 
+                                   name="targetType" 
+                                   value="Group" 
+                                   checked="@(model.TargetType == "Group")"
+                                   @onchange="@(() => ChangeTargetType("Group"))" />
+                            <span class="radio-label">
+                                <Icon Name="IconName.Filter" Size="16" />
+                                グループ指定
+                            </span>
+                            <span class="radio-desc">特定のグループに割当てます</span>
+                        </label>
+                        <label class="radio-option @(model.TargetType == "Attribute" ? "selected" : "")">
+                            <input type="radio" 
+                                   name="targetType" 
+                                   value="Attribute" 
+                                   checked="@(model.TargetType == "Attribute")"
+                                   @onchange="@(() => ChangeTargetType("Attribute"))" />
+                            <span class="radio-label">
+                                <Icon Name="IconName.Filter" Size="16" />
+                                属性指定
+                            </span>
+                            <span class="radio-desc">部署や役職などの属性で対象を絞込みます</span>
+                        </label>
+                    </div>
+                </div>
+
+                @if (model.TargetType == "Group")
+                {
+                    <div class="form-group">
+                        <label for="groupSelect">グループ選択</label>
+                        <select id="groupSelect" 
+                                class="form-control"
+                                value="@model.TargetGroupId"
+                                @onchange="HandleGroupChange">
+                            <option value="">-- グループを選択してください --</option>
+                            @foreach (var group in groups)
+                            {
+                                <option value="@group.Id">@group.DisplayName (@group.MemberCount 名)</option>
+                            }
+                        </select>
+                        @if (model.TargetGroupId == null)
+                        {
+                            <span class="validation-message">グループを選択してください</span>
+                        }
+                    </div>
+                }
+
+                @if (model.TargetType == "Attribute")
+                {
+                    <div class="form-group">
+                        <label for="attributeKey">属性キー <span class="required">*</span></label>
+                        <select id="attributeKey"
+                                class="form-control"
+                                value="@model.TargetAttributeKey"
+                                @onchange="HandleAttributeKeyChange">
+                            <option value="">-- 属性を選択してください --</option>
+                            <option value="Department">部署 (Department)</option>
+                            <option value="Division">事業部 (Division)</option>
+                            <option value="JobTitle">役職 (Job Title)</option>
+                            <option value="Organization">組織 (Organization)</option>
+                            <option value="CostCenter">コストセンター (Cost Center)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="attributeValue">属性値 <span class="required">*</span></label>
+                        <div class="search-group with-button" style="max-width: none;">
+                            <Icon Name="IconName.Search" Size="16" Class="search-icon" />
+                            <input type="text"
+                                   id="attributeValue"
+                                   list="attributeValueSuggestions"
+                                   @bind="model.TargetAttributeValue"
+                                   placeholder="例: 部署, エンジニア, 名前, メールアドレスなど" 
+                                   class="form-control" />
+                            <button type="button" class="search-button" @onclick="LoadCandidateUsers" disabled="@string.IsNullOrWhiteSpace(model.TargetAttributeValue)">
+                                検索
+                            </button>
+                        </div>
+                        <datalist id="attributeValueSuggestions">
+                            @foreach (var val in attributeValues)
+                            {
+                                <option value="@val" />
+                            }
+                        </datalist>
+                        <span class="form-hint">選択した属性に合致するユーザーが対象となります</span>
+                    </div>
+                }
+            </div>
+
+            @if (IsUserSelectionVisible)
+            {
+                <div class="form-section">
+                    <h3>対象ユーザー (@selectedUserIds.Count / @candidateUsers.Count 名)</h3>
+                    
+                    @if (isLoadingUsers)
+                    {
+                        <div class="loading-spinner-small"></div>
+                    }
+                    else if (candidateUsers.Any())
+                    {
+                        <div class="user-selection-actions">
+                            <button type="button" class="btn-sm btn-outline-secondary" @onclick="@(() => ToggleAllUsers(true))">全選択</button>
+                            <button type="button" class="btn-sm btn-outline-secondary" @onclick="@(() => ToggleAllUsers(false))">全解除</button>
+                        </div>
+
+                        <div class="user-list">
+                            @foreach (var user in candidateUsers)
+                            {
+                                <label class="user-checkbox-item">
+                                    <input type="checkbox" 
+                                           checked="@selectedUserIds.Contains(user.Id)"
+                                           @onchange="@(e => ToggleUserSelection(user.Id, (bool)(e.Value ?? false)))" />
+                                    <div class="user-info">
+                                        <span class="user-name">@user.Name</span>
+                                        <span class="user-email">@user.Email</span>
+                                        @if (!string.IsNullOrEmpty(user.Department))
+                                        {
+                                            <span class="user-meta">@user.Department</span>
+                                        }
+                                    </div>
+                                </label>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">対象となるユーザーが見つかりません</p>
+                    }
+                </div>
+            }
+
+            <div class="form-section">
+                <h3>通知設定</h3>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="model.NotifyImmediately" />
+                        <span>作成時にSlack通知を送信する</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>リマインダー（期限の何日前に通知）</label>
+                    <div class="reminder-options">
+                        @foreach (var day in new[] { 7, 3, 1, 0 })
+                        {
+                            <label class="checkbox-pill @(model.ReminderDays.Contains(day) ? "selected" : "")">
+                                <input type="checkbox" 
+                                       checked="@model.ReminderDays.Contains(day)"
+                                       @onchange="@(e => ToggleReminderDay(day, (bool)(e.Value ?? false)))" />
+                                @(day == 0 ? "当日" : $"{day}日前")
+                            </label>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" @onclick="GoToHome">キャンセル</button>
+                <button type="submit" class="btn-primary" disabled="@(!IsFormValid())">
+                    <Icon Name="IconName.Check" Size="16" />
+                    作成する
+                </button>
+            </div>
+        </form>
+    }
+</div>
+
+@code {
+    private CreateTodoModel model = new();
+    private bool isSubmitting = false;
+    private bool isSuccess = false;
+    private string? errorMessage;
+    private List<GroupDto> groups = new();
+    private List<string> attributeValues = new();
+    
+    // User Selection State
+    private List<UserResponse> candidateUsers = new();
+    private HashSet<Guid> selectedUserIds = new();
+    private bool isLoadingUsers = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            groups = await AdminApi.GetGroupsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load groups: {ex.Message}");
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (!IsFormValid()) return;
+
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            // Handle User Selection Logic
+            if ((model.TargetType == "Group" || model.TargetType == "Attribute") && 
+                candidateUsers.Any() && 
+                selectedUserIds.Count < candidateUsers.Count)
+            {
+                model.TargetType = "Individual";
+                model.TargetUserIds = selectedUserIds.ToList();
+            }
+            else if (model.TargetType == "Group" || model.TargetType == "Attribute")
+            {
+                model.TargetUserIds = null;
+            }
+
+            var result = await AdminApi.CreateTodoAsync(model);
+            
+            if (result == null)
+            {
+                errorMessage = "ToDoの作成に失敗しました。権限を確認してください。";
+                return;
+            }
+
+            isSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"エラーが発生しました: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void HandleTimeChange(ChangeEventArgs e)
+    {
+        if (!TimeSpan.TryParse(e.Value?.ToString(), out var time)) return;
+        model.DueTime = time;
+    }
+    
+    private void ChangeTargetType(string type)
+    {
+        model.TargetType = type;
+        candidateUsers.Clear();
+        selectedUserIds.Clear();
+        model.TargetGroupId = null;
+        model.TargetGroupName = null;
+        model.TargetAttributeKey = null;
+        model.TargetAttributeValue = null;
+    }
+
+    private void HandleGroupChange(ChangeEventArgs e)
+    {
+        if (!Guid.TryParse(e.Value?.ToString(), out var groupId))
+        {
+            model.TargetGroupId = null;
+            model.TargetGroupName = null;
+            candidateUsers.Clear();
+            selectedUserIds.Clear();
+            return;
+        }
+
+        model.TargetGroupId = groupId;
+        var group = groups.FirstOrDefault(g => g.Id == groupId);
+        model.TargetGroupName = group?.DisplayName;
+        _ = LoadCandidateUsers();
+    }
+
+    private async Task HandleAttributeKeyChange(ChangeEventArgs e)
+    {
+        model.TargetAttributeKey = e.Value?.ToString();
+        model.TargetAttributeValue = null;
+        attributeValues = new();
+        candidateUsers.Clear();
+        selectedUserIds.Clear();
+
+        if (string.IsNullOrEmpty(model.TargetAttributeKey)) return;
+
+        try
+        {
+            attributeValues = await AdminApi.GetAttributeValuesAsync(model.TargetAttributeKey);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load attribute values: {ex.Message}");
+        }
+    }
+
+    private void OnAttributeValueChanged()
+    {
+        if (string.IsNullOrEmpty(model.TargetAttributeValue))
+        {
+            candidateUsers.Clear();
+            selectedUserIds.Clear();
+            return;
+        }
+
+        _ = LoadCandidateUsers();
+    }
+
+    private async Task LoadCandidateUsers()
+    {
+        isLoadingUsers = true;
+        candidateUsers.Clear();
+        selectedUserIds.Clear();
+        StateHasChanged();
+
+        try
+        {
+            if (model.TargetType == "Group" && model.TargetGroupId.HasValue)
+            {
+                candidateUsers = await AdminApi.GetGroupUsersAsync(model.TargetGroupId.Value);
+            }
+            
+            if (model.TargetType == "Attribute" && !string.IsNullOrEmpty(model.TargetAttributeKey) && !string.IsNullOrEmpty(model.TargetAttributeValue))
+            {
+                candidateUsers = await AdminApi.GetUsersByAttributeAsync(model.TargetAttributeKey, model.TargetAttributeValue);
+            }
+
+            // Default: Select All
+            foreach (var user in candidateUsers)
+            {
+                selectedUserIds.Add(user.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load users: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingUsers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleUserSelection(Guid userId, bool isChecked)
+    {
+        if (isChecked) selectedUserIds.Add(userId);
+        else selectedUserIds.Remove(userId);
+    }
+
+    private void ToggleAllUsers(bool selectAll)
+    {
+        selectedUserIds.Clear();
+        if (selectAll)
+        {
+            foreach (var user in candidateUsers) selectedUserIds.Add(user.Id);
+        }
+    }
+
+    private void ToggleReminderDay(int day, bool isChecked)
+    {
+        if (!isChecked)
+        {
+            model.ReminderDays.Remove(day);
+            return;
+        }
+
+        if (!model.ReminderDays.Contains(day))
+        {
+            model.ReminderDays.Add(day);
+            model.ReminderDays.Sort((a, b) => b.CompareTo(a));
+        }
+    }
+
+    private bool IsFormValid()
+    {
+        if (string.IsNullOrWhiteSpace(model.Title)) return false;
+        if (model.DueDate < DateTime.Today) return false;
+        
+        if (model.TargetType == "Group" && model.TargetGroupId == null) return false;
+        if (model.TargetType == "Attribute" && 
+            (string.IsNullOrEmpty(model.TargetAttributeKey) || string.IsNullOrEmpty(model.TargetAttributeValue)))
+            return false;
+            
+        if ((model.TargetType == "Group" || model.TargetType == "Attribute") && 
+             candidateUsers.Any() && selectedUserIds.Count == 0)
+        {
+            return false; // Must select at least one user
+        }
+
+        return true;
+    }
+
+    private void CreateAnother()
+    {
+        model = new CreateTodoModel();
+        attributeValues = new();
+        isSuccess = false;
+        candidateUsers.Clear();
+        selectedUserIds.Clear();
+    }
+
+    private void GoToHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private bool IsUserSelectionVisible =>
+        (model.TargetType == "Group" && model.TargetGroupId != null) || 
+        (model.TargetType == "Attribute" && !string.IsNullOrEmpty(model.TargetAttributeKey) && !string.IsNullOrEmpty(model.TargetAttributeValue));
+}

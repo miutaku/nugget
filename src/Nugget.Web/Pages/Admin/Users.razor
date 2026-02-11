@@ -1,0 +1,214 @@
+@page "/users"
+@attribute [Authorize]
+@using Nugget.Web.Models
+@using Nugget.Web.Components
+@using Nugget.Web.Services
+@inject AdminApiService AdminApi
+@inject NavigationManager Navigation
+
+<PageTitle>ユーザー一覧 - Nugget</PageTitle>
+
+<div class="page-container admin-page">
+    <header class="page-header">
+        <h1>
+            <Icon Name="IconName.User" Size="28" Class="header-icon" />
+            ユーザー一覧
+        </h1>
+        <p class="subtitle">システムに登録されているユーザーを検索・確認します</p>
+    </header>
+
+    <div class="search-section">
+        <div class="search-group with-button">
+            <Icon Name="IconName.Search" Size="16" Class="search-icon" />
+            <input type="text" 
+                   class="form-control" 
+                   @bind="searchQuery" 
+                   @bind:event="oninput"
+                   @onkeyup="@Enter"
+                   placeholder="名前、メールアドレス、部署などで検索..." />
+            <button class="search-button" @onclick="SearchUsers">
+                検索
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>ユーザー情報を読み込み中...</p>
+        </div>
+    }
+    else if (users == null)
+    {
+        <div class="error-banner">
+            <Icon Name="IconName.AlertCircle" Size="16" />
+            ユーザー情報の取得に失敗しました。
+        </div>
+    }
+    else if (!users.Any())
+    {
+        <div class="empty-state">
+            <p>条件に一致するユーザーは見つかりませんでした。</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>氏名</th>
+                        <th>メールアドレス</th>
+                        <th>部署</th>
+                        <th>事業部</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in users)
+                    {
+                        <tr>
+                            <td class="user-name-cell">
+                                <span class="user-avatar-placeholder">@user.Name.FirstOrDefault()</span>
+                                @user.Name
+                            </td>
+                            <td>@user.Email</td>
+                            <td>@user.Department</td>
+                            <td>@user.Division</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="list-footer">
+            全 @users.Count 件
+        </div>
+    }
+</div>
+
+@code {
+    private List<UserResponse>? users;
+    private bool isLoading = true;
+    private string searchQuery = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        isLoading = true;
+        try
+        {
+            users = await AdminApi.SearchUsersAsync(searchQuery);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading users: {ex.Message}");
+            users = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SearchUsers()
+    {
+        await LoadUsers();
+    }
+
+    private async Task Enter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchUsers();
+        }
+    }
+}
+
+<style>
+    .admin-page {
+        max-width: 1200px;
+    }
+
+    .search-section {
+        margin-bottom: 2rem;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: var(--color-card);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--color-border);
+    }
+
+    .data-table th {
+        text-align: left;
+        padding: 1rem;
+        background-color: rgba(0, 0, 0, 0.02);
+        color: var(--color-text-muted);
+        font-weight: 500;
+        font-size: 0.875rem;
+        border-bottom: 1px solid var(--color-border);
+        white-space: nowrap;
+    }
+
+    .data-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--color-border);
+        color: var(--color-text);
+        font-size: 0.9rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .data-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .user-name-cell {
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        white-space: nowrap;
+    }
+
+    .user-avatar-placeholder {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #e0e7ff;
+        color: #4f46e5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+    }
+
+    .list-footer {
+        margin-top: 1rem;
+        text-align: right;
+        color: var(--color-text-muted);
+        font-size: 0.875rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--color-card);
+        border-radius: var(--radius-lg);
+        color: var(--color-text-muted);
+        border: 1px solid var(--color-border);
+    }
+
+
+</style>

@@ -1,0 +1,38 @@
+﻿@using Nugget.Web.Components
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated != true)
+                    {
+                        <RedirectToLogin />
+                    }
+                    else
+                    {
+                        <p role="alert">このページにアクセスする権限がありません。</p>
+                    }
+                </NotAuthorized>
+                <Authorizing>
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <p>認証確認中...</p>
+                    </div>
+                </Authorizing>
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <PageTitle>ページが見つかりません</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <div class="page-container">
+                    <div class="error-message">
+                        <Icon Name="IconName.AlertTriangle" Size="32" />
+                        <h2>404 - ページが見つかりません</h2>
+                        <p>申し訳ありませんが、お探しのページは存在しないようです。</p>
+                    </div>
+                </div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

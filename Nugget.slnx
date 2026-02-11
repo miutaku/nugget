@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Nugget.Api/Nugget.Api.csproj" />
+    <Project Path="src/Nugget.Core/Nugget.Core.csproj" />
+    <Project Path="src/Nugget.Infrastructure/Nugget.Infrastructure.csproj" />
+    <Project Path="src/Nugget.Web/Nugget.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Nugget.Api.Tests/Nugget.Api.Tests.csproj" />
+    <Project Path="tests/Nugget.Core.Tests/Nugget.Core.Tests.csproj" />
+    <Project Path="tests/Nugget.Infrastructure.Tests/Nugget.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

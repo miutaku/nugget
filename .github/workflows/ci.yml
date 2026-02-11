@@ -1,0 +1,21 @@
+name: CI - unit test
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  docker-verify:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Unit Tests (Docker)
+      run: docker build -f docker/Dockerfile --target test .
+      
+    - name: Verify Build (API)
+      run: docker build -f docker/Dockerfile --target api .
+      
+    - name: Verify Build (Web)
+      run: docker build -f docker/Dockerfile --target web .

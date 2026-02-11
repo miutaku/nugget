@@ -1,0 +1,86 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 947B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for mcr.microsoft.com/dotnet/sdk:10.0
+#2 DONE 0.3s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 192B done
+#3 DONE 0.0s
+
+#4 [build 1/4] FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:89e985253248c1211e8440b82db775fd3d3c73c915ceb96766495bce050d385f
+#4 resolve mcr.microsoft.com/dotnet/sdk:10.0@sha256:89e985253248c1211e8440b82db775fd3d3c73c915ceb96766495bce050d385f 0.0s done
+#4 DONE 0.0s
+
+#5 [build 2/4] WORKDIR /app
+#5 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 21.45kB done
+#6 DONE 0.0s
+
+#7 [build 3/4] COPY . .
+#7 DONE 0.1s
+
+#8 [build 4/4] RUN dotnet restore Nugget.slnx
+#8 0.975   Determining projects to restore...
+#8 1.529   Restored /app/src/Nugget.Core/Nugget.Core.csproj (in 76 ms).
+#8 8.823   Restored /app/tests/Nugget.Core.Tests/Nugget.Core.Tests.csproj (in 5.2 sec).
+#8 8.834   Restored /app/src/Nugget.Infrastructure/Nugget.Infrastructure.csproj (in 5.2 sec).
+#8 8.850   Restored /app/src/Nugget.Web/Nugget.Web.csproj (in 5.22 sec).
+#8 8.876   Restored /app/src/Nugget.Api/Nugget.Api.csproj (in 5.41 sec).
+#8 8.879   Restored /app/tests/Nugget.Api.Tests/Nugget.Api.Tests.csproj (in 5.22 sec).
+#8 8.897   Restored /app/tests/Nugget.Infrastructure.Tests/Nugget.Infrastructure.Tests.csproj (in 5.2 sec).
+#8 DONE 9.5s
+
+#9 [test 1/1] RUN dotnet test Nugget.slnx -c Release --no-restore
+#9 3.764   Nugget.Core -> /app/src/Nugget.Core/bin/Release/net10.0/Nugget.Core.dll
+#9 4.356   Nugget.Core.Tests -> /app/tests/Nugget.Core.Tests/bin/Release/net10.0/Nugget.Core.Tests.dll
+#9 4.373 Test run for /app/tests/Nugget.Core.Tests/bin/Release/net10.0/Nugget.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+#9 4.415 VSTest version 18.0.1 (x64)
+#9 4.417 
+#9 4.425   Nugget.Infrastructure -> /app/src/Nugget.Infrastructure/bin/Release/net10.0/Nugget.Infrastructure.dll
+#9 4.488 Starting test execution, please wait...
+#9 4.509 A total of 1 test files matched the specified pattern.
+#9 4.731 CSC : error CS2021: File name '**/*.razor' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#9 4.731 CSC : error CS2001: Source file '**/*.razor' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#9 4.731 CSC : error CS2021: File name '**/*.cshtml' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#9 4.731 CSC : error CS2001: Source file '**/*.cshtml' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#9 4.731 CSC : error CS2021: File name '**/*.cs' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#9 4.731 CSC : error CS2001: Source file '**/*.cs' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#9 4.865   Nugget.Infrastructure.Tests -> /app/tests/Nugget.Infrastructure.Tests/bin/Release/net10.0/Nugget.Infrastructure.Tests.dll
+#9 4.885 Test run for /app/tests/Nugget.Infrastructure.Tests/bin/Release/net10.0/Nugget.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)
+#9 4.927 VSTest version 18.0.1 (x64)
+#9 4.930 
+#9 5.010 Starting test execution, please wait...
+#9 5.038 A total of 1 test files matched the specified pattern.
+#9 5.143 
+#9 5.149 Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 61 ms - Nugget.Core.Tests.dll (net10.0)
+#9 6.282 
+#9 6.285 Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 733 ms - Nugget.Infrastructure.Tests.dll (net10.0)
+#9 ERROR: process "/bin/sh -c dotnet test Nugget.slnx -c Release --no-restore" did not complete successfully: exit code: 1
+------
+ > [test 1/1] RUN dotnet test Nugget.slnx -c Release --no-restore:
+4.731 CSC : error CS2001: Source file '**/*.cshtml' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+4.731 CSC : error CS2021: File name '**/*.cs' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+4.731 CSC : error CS2001: Source file '**/*.cs' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+4.865   Nugget.Infrastructure.Tests -> /app/tests/Nugget.Infrastructure.Tests/bin/Release/net10.0/Nugget.Infrastructure.Tests.dll
+
+5.038 A total of 1 test files matched the specified pattern.
+5.143 
+5.149 Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 61 ms - Nugget.Core.Tests.dll (net10.0)
+6.282 
+6.285 Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 733 ms - Nugget.Infrastructure.Tests.dll (net10.0)
+------
+Dockerfile:13
+--------------------
+  11 |     # Test stage
+  12 |     FROM build AS test
+  13 | >>> RUN dotnet test Nugget.slnx -c Release --no-restore
+  14 |     
+  15 |     # Publish stage
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c dotnet test Nugget.slnx -c Release --no-restore" did not complete successfully: exit code: 1

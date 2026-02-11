@@ -1,0 +1,79 @@
+﻿@inherits LayoutComponentBase
+@inject AdminApiService AdminApi
+@inject NavigationManager Navigation
+@using Nugget.Web.Components
+@using Nugget.Web.Models
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <AuthorizeView>
+                <Authorized>
+                    <div class="user-info-container">
+                        @if (!string.IsNullOrEmpty(orgName))
+                        {
+                            <span class="org-name">
+                                <Icon Name="IconName.Building" Size="16" />
+                                @orgName
+                            </span>
+                        }
+                        <div class="user-info">
+                            <Icon Name="IconName.User" Size="16" />
+                            <span class="user-name">@context.User.Identity?.Name</span>
+                            @if (!string.IsNullOrEmpty(GetRoleName(context.User)))
+                            {
+                                <span class="user-role badge" style="@GetRoleStyle(context.User)">@GetRoleName(context.User)</span>
+                            }
+                        </div>
+                    </div>
+                    <button class="btn btn-link logout-link" @onclick="Logout">
+                        ログアウト
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="/api/auth/login" class="login-link">ログイン</a>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private string? orgName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var info = await AdminApi.GetSystemInfoAsync();
+        orgName = info?.OrganizationName;
+    }
+
+    private void Logout()
+    {
+        Navigation.NavigateTo("api/auth/logout", forceLoad: true);
+    }
+
+    private string? GetRoleName(System.Security.Claims.ClaimsPrincipal user)
+    {
+        if (user.IsInRole("Admin")) return "管理者";
+        return null;
+    }
+
+    private string GetRoleBackgroundColor(System.Security.Claims.ClaimsPrincipal user)
+    {
+        return user.IsInRole("Admin") ? "#ef4444" : "#f3f4f6"; // 管理者は赤色バッジ
+    }
+
+    private string GetRoleStyle(System.Security.Claims.ClaimsPrincipal user)
+    {
+        var bgColor = GetRoleBackgroundColor(user);
+        return $"background-color: {bgColor}; border-color: {bgColor}";
+    }
+}

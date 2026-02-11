@@ -1,0 +1,131 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.10kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for mcr.microsoft.com/dotnet/sdk:10.0
+#2 DONE 1.2s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 192B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 DONE 0.0s
+
+#5 [build 1/6] FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:89e985253248c1211e8440b82db775fd3d3c73c915ceb96766495bce050d385f
+#5 resolve mcr.microsoft.com/dotnet/sdk:10.0@sha256:89e985253248c1211e8440b82db775fd3d3c73c915ceb96766495bce050d385f 0.0s done
+#5 DONE 0.1s
+
+#4 [internal] load build context
+#4 transferring context: 26.67kB done
+#4 DONE 0.0s
+
+#6 [build 2/6] WORKDIR /app
+#6 CACHED
+
+#7 [build 3/6] COPY . .
+#7 DONE 0.2s
+
+#8 [build 4/6] RUN ls -la src/Nugget.Api
+#8 0.317 total 64
+#8 0.317 drwxrwxr-x 9 root root 4096 Feb 10 23:07 .
+#8 0.317 drwxrwxr-x 6 root root 4096 Feb  3 13:43 ..
+#8 0.317 drwxrwxr-x 2 root root 4096 Feb  3 13:47 BackgroundServices
+#8 0.317 drwxrwxr-x 2 root root 4096 Feb 10 22:44 Controllers
+#8 0.317 drwxrwxr-x 2 root root 4096 Feb 10 20:23 DTOs
+#8 0.317 drwxrwxr-x 3 root root 4096 Feb  3 15:06 Models
+#8 0.317 -rw-rw-r-- 1 root root  928 Feb 10 23:07 Nugget.Api.csproj
+#8 0.317 -rw-rw-r-- 1 root root  127 Feb  3 13:43 Nugget.Api.http
+#8 0.317 -rw-rw-r-- 1 root root 9108 Feb 10 22:39 Program.cs
+#8 0.317 drwxrwxr-x 2 root root 4096 Feb  3 13:43 Properties
+#8 0.317 drwxrwxr-x 2 root root 4096 Feb 10 21:25 Services
+#8 0.317 -rw-rw-r-- 1 root root  119 Feb  3 13:43 appsettings.Development.json
+#8 0.317 -rw-rw-r-- 1 root root  815 Feb 10 21:51 appsettings.json
+#8 0.317 drwxrwxr-x 3 root root 4096 Feb  3 14:53 bin\Debug
+#8 DONE 0.4s
+
+#9 [build 5/6] RUN cat src/Nugget.Api/Nugget.Api.csproj
+#9 0.233 <Project Sdk="Microsoft.NET.Sdk.Web">
+#9 0.233 
+#9 0.233   <PropertyGroup>
+#9 0.233     <TargetFramework>net10.0</TargetFramework>
+#9 0.233     <Nullable>enable</Nullable>
+#9 0.233     <ImplicitUsings>enable</ImplicitUsings>
+#9 0.233     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+#9 0.233   </PropertyGroup>
+#9 0.233 
+#9 0.233   <ItemGroup>
+#9 0.233     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
+#9 0.233     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+#9 0.233       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+#9 0.233       <PrivateAssets>all</PrivateAssets>
+#9 0.233     </PackageReference>
+#9 0.233     <PackageReference Include="Sustainsys.Saml2.AspNetCore2" Version="2.11.0" />
+#9 0.233   </ItemGroup>
+#9 0.233 
+#9 0.233   <ItemGroup>
+#9 0.233     <ProjectReference Include="..\Nugget.Core\Nugget.Core.csproj" />
+#9 0.233     <ProjectReference Include="..\Nugget.Infrastructure\Nugget.Infrastructure.csproj" />
+#9 0.233   </ItemGroup>
+#9 0.233 
+#9 0.233 </Project>
+#9 DONE 0.3s
+
+#10 [build 6/6] RUN dotnet restore Nugget.slnx
+#10 1.201   Determining projects to restore...
+#10 1.823   Restored /app/src/Nugget.Core/Nugget.Core.csproj (in 87 ms).
+#10 10.03   Restored /app/src/Nugget.Infrastructure/Nugget.Infrastructure.csproj (in 6.9 sec).
+#10 10.04   Restored /app/src/Nugget.Web/Nugget.Web.csproj (in 6.91 sec).
+#10 10.05   Restored /app/src/Nugget.Api/Nugget.Api.csproj (in 6.94 sec).
+#10 10.05   Restored /app/tests/Nugget.Core.Tests/Nugget.Core.Tests.csproj (in 6.9 sec).
+#10 10.06   Restored /app/tests/Nugget.Infrastructure.Tests/Nugget.Infrastructure.Tests.csproj (in 6.9 sec).
+#10 10.07   Restored /app/tests/Nugget.Api.Tests/Nugget.Api.Tests.csproj (in 6.91 sec).
+#10 DONE 10.8s
+
+#11 [test 1/2] RUN dotnet build src/Nugget.Api/Nugget.Api.csproj -c Release --no-restore
+#11 4.416   Nugget.Core -> /app/src/Nugget.Core/bin/Release/net10.0/Nugget.Core.dll
+#11 5.085   Nugget.Infrastructure -> /app/src/Nugget.Infrastructure/bin/Release/net10.0/Nugget.Infrastructure.dll
+#11 5.359 CSC : error CS2021: File name '**/*.razor' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.359 CSC : error CS2001: Source file '**/*.razor' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.359 CSC : error CS2021: File name '**/*.cshtml' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.359 CSC : error CS2001: Source file '**/*.cshtml' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.359 CSC : error CS2021: File name '**/*.cs' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.359 CSC : error CS2001: Source file '**/*.cs' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.379 
+#11 5.380 Build FAILED.
+#11 5.380 
+#11 5.380 CSC : error CS2021: File name '**/*.razor' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.380 CSC : error CS2001: Source file '**/*.razor' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.380 CSC : error CS2021: File name '**/*.cshtml' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.380 CSC : error CS2001: Source file '**/*.cshtml' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.380 CSC : error CS2021: File name '**/*.cs' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.380 CSC : error CS2001: Source file '**/*.cs' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+#11 5.380     0 Warning(s)
+#11 5.380     6 Error(s)
+#11 5.380 
+#11 5.380 Time Elapsed 00:00:04.30
+#11 ERROR: process "/bin/sh -c dotnet build src/Nugget.Api/Nugget.Api.csproj -c Release --no-restore" did not complete successfully: exit code: 1
+------
+ > [test 1/2] RUN dotnet build src/Nugget.Api/Nugget.Api.csproj -c Release --no-restore:
+5.380 CSC : error CS2021: File name '**/*.razor' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+5.380 CSC : error CS2001: Source file '**/*.razor' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+5.380 CSC : error CS2021: File name '**/*.cshtml' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+5.380 CSC : error CS2001: Source file '**/*.cshtml' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+5.380 CSC : error CS2021: File name '**/*.cs' is empty, contains invalid characters, has a drive specification without an absolute path, or is too long [/app/src/Nugget.Api/Nugget.Api.csproj]
+5.380 CSC : error CS2001: Source file '**/*.cs' could not be found. [/app/src/Nugget.Api/Nugget.Api.csproj]
+5.380     0 Warning(s)
+5.380     6 Error(s)
+5.380 
+5.380 Time Elapsed 00:00:04.30
+------
+Dockerfile:17
+--------------------
+  15 |     # Test stage
+  16 |     FROM build AS test
+  17 | >>> RUN dotnet build src/Nugget.Api/Nugget.Api.csproj -c Release --no-restore
+  18 |     RUN dotnet test Nugget.slnx -c Release --no-restore
+  19 |     
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c dotnet build src/Nugget.Api/Nugget.Api.csproj -c Release --no-restore" did not complete successfully: exit code: 1

@@ -1,0 +1,106 @@
+﻿@inject AdminApiService AdminApi
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid branding-container">
+        <div class="brand-group">
+            <img src="icon-192.png" alt="Nugget Mascot" class="brand-logo" />
+            <a class="navbar-brand" href="">Nugget</a>
+        </div>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> マイToDo
+            </NavLink>
+        </div>
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/dashboard">
+                        <span class="bi bi-graph-up-nav-menu" aria-hidden="true"></span> 分析ダッシュボード
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="todos/create">
+                        <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> ToDo作成
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="todos/progress">
+                        <span class="bi bi-list-check-nav-menu" aria-hidden="true"></span> 進捗管理
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="users">
+                        <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> ユーザー一覧
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="settings/notifications">
+                <span class="bi bi-gear-fill-nav-menu" aria-hidden="true"></span> 通知設定
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+    private string? orgName;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var info = await AdminApi.GetSystemInfoAsync();
+        orgName = info?.OrganizationName;
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}
+
+<style>
+    .branding-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: nowrap;
+        width: 100%;
+        padding-right: 1.5rem;
+    }
+
+    .brand-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .navbar-brand {
+        margin-right: 0 !important;
+        flex-shrink: 0;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+
+    .brand-logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+</style>

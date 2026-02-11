@@ -1,0 +1,393 @@
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@inject StatsApiService StatsApi
+@inject NavigationManager Navigation
+
+<PageTitle>分析ダッシュボード - Nugget</PageTitle>
+
+<div class="page-container dashboard-page">
+    <header class="page-header">
+        <h1>
+            <span class="bi bi-graph-up" style="background-size: 28px; width: 28px; height: 28px; display: inline-block; vertical-align: middle; margin-right: 10px;"></span>
+            分析ダッシュボード
+        </h1>
+        <p class="subtitle">システム全体の利用状況と目標達成率を確認します</p>
+    </header>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>読み込み中...</p>
+        </div>
+    }
+    else if (stats == null)
+    {
+        <div class="error-banner">
+            <Icon Name="IconName.AlertCircle" Size="16" />
+            統計情報の取得に失敗しました。
+        </div>
+    }
+    else
+    {
+        <div class="stats-grid">
+            <div class="stats-card">
+                <div class="stats-icon users">
+                    <Icon Name="IconName.User" Size="24" />
+                </div>
+                <div class="stats-content">
+                    <span class="stats-label">アクティブユーザー</span>
+                    <span class="stats-value">@stats.TotalUsers</span>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-icon groups">
+                    <Icon Name="IconName.Filter" Size="24" />
+                </div>
+                <div class="stats-content">
+                    <span class="stats-label">グループ数</span>
+                    <span class="stats-value">@stats.TotalGroups</span>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-icon todos">
+                    <Icon Name="IconName.Clipboard" Size="24" />
+                </div>
+                <div class="stats-content">
+                    <span class="stats-label">総ToDo数</span>
+                    <span class="stats-value">@stats.TotalTodos</span>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-icon rate">
+                    <Icon Name="IconName.CheckCircle" Size="24" />
+                </div>
+                <div class="stats-content">
+                    <span class="stats-label">全体達成率</span>
+                    <span class="stats-value">@stats.CompletionRate%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-charts">
+            <div class="chart-container">
+                <h3>目標達成状況</h3>
+                <div class="completion-vessel">
+                    <div class="completion-bar" style="width: @(stats.CompletionRate)%">
+                        <span class="completion-label">@stats.CompletionRate%</span>
+                    </div>
+                </div>
+                <div class="chart-legend">
+                    <span>完了: @stats.CompletedAssignments</span>
+                    <span>未完了: @(stats.TotalAssignments - stats.CompletedAssignments)</span>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>配信ターゲット別</h3>
+                <div class="type-distribution">
+                    @foreach (var item in stats.TargetTypeBreakdown)
+                    {
+                        var percentage = stats.TotalTodos > 0 ? (double)item.Count / stats.TotalTodos * 100 : 0;
+                        <div class="distribution-item">
+                            <div class="item-header">
+                                <span>@GetTargetTypeName(item.TargetType)</span>
+                                <span>@item.Count 件 (@Math.Round(percentage, 1)%)</span>
+                            </div>
+                            <div class="item-bar-bg">
+                                <div class="item-bar-fill" style="width: @percentage%"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="activity-section">
+            <h3>直近7日間のアクティビティ</h3>
+            <div class="activity-chart">
+                <div class="activity-grid">
+                    @foreach (var day in stats.RecentActivity)
+                    {
+                        var maxCount = stats.RecentActivity.Max(a => Math.Max(a.CreatedCount, a.CompletedCount));
+                        if (maxCount == 0) maxCount = 1;
+
+                        <div class="activity-column">
+                            <div class="bars">
+                                <div class="bar created" style="height: @(day.CreatedCount * 100 / maxCount)%" title="作成: @day.CreatedCount"></div>
+                                <div class="bar completed" style="height: @(day.CompletedCount * 100 / maxCount)%" title="完了: @day.CompletedCount"></div>
+                            </div>
+                            <span class="day-label">@day.Date.ToString("M/d")</span>
+                        </div>
+                    }
+                </div>
+                <div class="activity-legend">
+                    <span class="legend-item"><span class="dot created"></span> 作成数</span>
+                    <span class="legend-item"><span class="dot completed"></span> 完了数</span>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .dashboard-page {
+        max-width: 1000px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stats-card {
+        background: var(--color-card);
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .stats-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .stats-icon.users { background: #6366f1; }
+    .stats-icon.groups { background: #10b981; }
+    .stats-icon.todos { background: #f59e0b; }
+    .stats-icon.rate { background: #ec4899; }
+
+    .stats-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stats-label {
+        font-size: 0.875rem;
+        color: var(--color-text-muted);
+    }
+
+    .stats-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--color-text);
+    }
+
+    .dashboard-charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .chart-container {
+        background: var(--color-card);
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .chart-container h3 {
+        font-size: 1.125rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .completion-vessel {
+        height: 40px;
+        background: var(--color-bg);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .completion-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #6366f1, #3b82f6);
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 1rem;
+        transition: width 1s ease-out;
+    }
+
+    .completion-label {
+        color: white;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+
+    .chart-legend {
+        display: flex;
+        gap: 1.5rem;
+        font-size: 0.875rem;
+        color: var(--color-text-muted);
+    }
+
+    .type-distribution {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .distribution-item .item-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .item-bar-bg {
+        height: 8px;
+        background: var(--color-bg);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .item-bar-fill {
+        height: 100%;
+        background: var(--color-primary);
+        border-radius: 4px;
+    }
+
+    .activity-section {
+        background: var(--color-card);
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .activity-section h3 {
+        font-size: 1.125rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .activity-chart {
+        height: 250px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .activity-grid {
+        flex: 1;
+        display: flex;
+        align-items: flex-end;
+        gap: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .activity-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .activity-column .bars {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 4px;
+        height: 180px;
+    }
+
+    .bar {
+        width: 12px;
+        border-radius: 4px 4px 0 0;
+        transition: height 0.5s ease;
+    }
+
+    .bar.created { background: #6366f1; }
+    .bar.completed { background: #10b981; }
+
+    .day-label {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+    }
+
+    .activity-legend {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        font-size: 0.875rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+
+    .dot.created { background: #6366f1; }
+    .dot.completed { background: #10b981; }
+
+    @@media (max-width: 768px) {
+        .dashboard-charts {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .activity-column .bars {
+            height: 120px;
+        }
+
+        .bar {
+            width: 8px;
+        }
+
+        .dashboard-page .page-header h1 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+@code {
+    private GlobalStatsModel? stats;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        stats = await StatsApi.GetGlobalStatsAsync();
+        isLoading = false;
+    }
+
+    private string GetTargetTypeName(string key)
+    {
+        return key switch
+        {
+            "All" => "全体",
+            "Individual" => "個人",
+            "Group" => "グループ",
+            _ => key
+        };
+    }
+}

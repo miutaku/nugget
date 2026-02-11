@@ -1,0 +1,94 @@
+@using Nugget.Web.Models
+
+<div class="todo-filter">
+    <div class="filter-group">
+        <label>フィルター:</label>
+        <div class="filter-buttons">
+            <button class="@(CurrentFilter == TodoFilterType.All ? "active" : "")"
+                    @onclick="@(() => OnFilterChange(TodoFilterType.All))">
+                すべて
+            </button>
+            <button class="@(CurrentFilter == TodoFilterType.Incomplete ? "active" : "")"
+                    @onclick="@(() => OnFilterChange(TodoFilterType.Incomplete))">
+                未完了
+            </button>
+            <button class="@(CurrentFilter == TodoFilterType.Completed ? "active" : "")"
+                    @onclick="@(() => OnFilterChange(TodoFilterType.Completed))">
+                完了
+            </button>
+            <button class="@(CurrentFilter == TodoFilterType.Overdue ? "active" : "")"
+                    @onclick="@(() => OnFilterChange(TodoFilterType.Overdue))">
+                期限切れ
+            </button>
+        </div>
+    </div>
+    <div class="search-group with-button">
+        <Icon Name="IconName.Search" Size="16" Class="search-icon" />
+        <input type="text" 
+               placeholder="タイトルや詳細で検索..." 
+               value="@CurrentSearchTerm" 
+               @oninput="OnSearchInput"
+               @onkeyup="OnSearchKeyUp" />
+        <button class="search-button" @onclick="TriggerSearch">
+            検索
+        </button>
+    </div>
+
+    <div class="sort-group">
+        <label>並び順:</label>
+        <select @bind="CurrentSortBy" @bind:after="OnSortChanged">
+            <option value="@TodoSortBy.DueDate">期限順</option>
+            <option value="@TodoSortBy.CreatedAt">作成日順</option>
+        </select>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? CurrentSearchTerm { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> OnSearchTermChanged { get; set; }
+
+    [Parameter]
+    public TodoFilterType CurrentFilter { get; set; } = TodoFilterType.Incomplete;
+
+    [Parameter]
+    public TodoSortBy CurrentSortBy { get; set; } = TodoSortBy.DueDate;
+
+    [Parameter]
+    public EventCallback<TodoFilterType> OnFilterChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<TodoSortBy> OnSortByChanged { get; set; }
+
+    private async Task OnFilterChange(TodoFilterType filter)
+    {
+        CurrentFilter = filter;
+        await OnFilterChanged.InvokeAsync(filter);
+    }
+
+    private async Task OnSortChanged()
+    {
+        await OnSortByChanged.InvokeAsync(CurrentSortBy);
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        CurrentSearchTerm = e.Value?.ToString();
+        await OnSearchTermChanged.InvokeAsync(CurrentSearchTerm);
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await TriggerSearch();
+        }
+    }
+
+    private async Task TriggerSearch()
+    {
+        await OnSearchTermChanged.InvokeAsync(CurrentSearchTerm);
+    }
+}

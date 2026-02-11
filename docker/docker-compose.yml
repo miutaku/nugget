@@ -1,0 +1,68 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=tidb;Port=4000;Database=nugget;User=root;
+      - Slack__BotToken=${SLACK_BOT_TOKEN:-}
+      - Slack__AppUrl=http://localhost:5173
+      - Saml__EntityId=http://localhost:5000
+      - Saml__ReturnUrl=http://localhost:5173
+      - Saml__PublicOrigin=http://localhost:5000
+      - Saml__IdpEntityId=${SAML_IDP_ENTITY_ID:-}
+      - Saml__IdpSsoUrl=${SAML_IDP_SSO_URL:-}
+      - Saml__IdpMetadataUrl=${SAML_IDP_METADATA_URL:-}
+      - Saml__IdpCertificatePath=${SAML_IDP_CERTIFICATE_PATH:-}
+      - SAML_ADMIN_EMAILS=${SAML_ADMIN_EMAILS:-}
+      - Scim__ApiToken=${SCIM_API_TOKEN:-}
+      - App__OrganizationName=${ORG_NAME:-株式会社Nugget}
+      - Cors__AllowedOrigins__0=http://localhost:5173
+      - Cors__AllowedOrigins__1=http://localhost:5000
+    depends_on:
+      tidb:
+        condition: service_healthy
+    volumes:
+      - ./idp_cert.cert:/app/idp_cert.cert:ro
+      - keys_data:/app/keys
+    networks:
+      - nugget-network
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: web
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    networks:
+      - nugget-network
+
+  tidb:
+    image: pingcap/tidb:v8.5.5
+    ports:
+      - "4000:4000"
+      - "10080:10080"
+    volumes:
+      - tidb_data:/tmp/tidb
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:10080/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - nugget-network
+
+volumes:
+  tidb_data:
+  keys_data:
+
+networks:
+  nugget-network:
+    driver: bridge
