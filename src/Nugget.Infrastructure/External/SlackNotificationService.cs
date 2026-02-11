@@ -146,6 +146,29 @@ public class SlackNotificationService : INotificationService
         }
     }
 
+    public async Task SendTodoDeletedNotificationAsync(CoreTodo todo, IEnumerable<CoreUser> users, CancellationToken cancellationToken = default)
+    {
+        var message = BuildTodoDeletedMessage(todo);
+
+        foreach (var user in users.Where(u => !string.IsNullOrEmpty(u.SlackUserId)))
+        {
+            try
+            {
+                await _slackClient.Chat.PostMessage(new Message
+                {
+                    Channel = user.SlackUserId!,
+                    Text = message
+                });
+
+                _logger.LogInformation("ToDo削除通知を送信しました: UserId={UserId}, TodoId={TodoId}", user.Id, todo.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Slack通知の送信に失敗しました: UserId={UserId}, TodoId={TodoId}", user.Id, todo.Id);
+            }
+        }
+    }
+
     private string BuildNewTodoMessage(CoreTodo todo)
     {
         var sb = new System.Text.StringBuilder();
@@ -235,6 +258,17 @@ public class SlackNotificationService : INotificationService
         sb.AppendLine();
         sb.AppendLine($"→ <{_options.AppUrl}|すべてのToDoを確認>");
 
+        return sb.ToString();
+    }
+
+    private string BuildTodoDeletedMessage(CoreTodo todo)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("🗑️ *ToDoが削除されました*");
+        sb.AppendLine();
+        sb.AppendLine($"*タイトル:* {todo.Title}");
+        sb.AppendLine("このタスクは取り消されました。");
+        
         return sb.ToString();
     }
 }

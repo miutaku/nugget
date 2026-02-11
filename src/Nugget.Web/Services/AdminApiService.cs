@@ -53,6 +53,14 @@ public class AdminApiService
     }
 
     /// <summary>
+    /// ToDoの詳細情報を取得
+    /// </summary>
+    public async Task<TodoResponse?> GetTodoAsync(Guid todoId)
+    {
+        return await _httpClient.GetFromJsonAsync<TodoResponse>($"api/todos/{todoId}");
+    }
+
+    /// <summary>
     /// グループ一覧を取得
     /// </summary>
     public async Task<List<GroupDto>> GetGroupsAsync()
@@ -87,6 +95,33 @@ public class AdminApiService
     public async Task<List<UserResponse>> GetGroupUsersAsync(Guid groupId)
     {
         return await _httpClient.GetFromJsonAsync<List<UserResponse>>($"api/groups/{groupId}/users") ?? new List<UserResponse>();
+    }
+
+    /// <summary>
+    /// ToDoを更新
+    /// </summary>
+    public async Task<bool> UpdateTodoAsync(Guid todoId, UpdateTodoModel model)
+    {
+        var request = new
+        {
+            title = model.Title,
+            description = model.Description,
+            dueDate = model.GetDueDateTime(),
+            notifyImmediately = model.NotifyImmediately,
+            reminderDays = model.ReminderDays?.ToArray()
+        };
+
+        var response = await _httpClient.PutAsJsonAsync($"api/todos/{todoId}", request);
+        return response.IsSuccessStatusCode;
+    }
+
+    /// <summary>
+    /// ToDoを削除
+    /// </summary>
+    public async Task<bool> DeleteTodoAsync(Guid todoId)
+    {
+        var response = await _httpClient.DeleteAsync($"api/todos/{todoId}");
+        return response.IsSuccessStatusCode;
     }
 
     /// <summary>

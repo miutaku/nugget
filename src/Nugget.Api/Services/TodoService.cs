@@ -239,6 +239,57 @@ public class TodoService
     }
 
     /// <summary>
+    /// ToDoを削除
+    /// </summary>
+    public async Task<bool> DeleteTodoAsync(Guid todoId, Guid currentUserId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var todo = await _todoRepository.GetByIdAsync(todoId, cancellationToken);
+            if (todo == null)
+            {
+                return false;
+            }
+
+            // 権限チェック (作成者または管理者)
+            if (!isAdmin && todo.CreatedById != currentUserId)
+            {
+                throw new UnauthorizedAccessException("このToDoを削除する権限がありません。");
+            }
+
+            // 通知対象ユーザーの取得 (未完了の割り当てを持つユーザー)
+            var targetUsers = todo.Assignments
+                .Where(a => !a.IsCompleted)
+                .Select(a => a.User)
+                .ToList();
+
+            // 削除通知の送信
+            await _notificationService.SendTodoDeletedNotificationAsync(todo, targetUsers, cancellationToken);
+
+            // 削除実行
+            await _todoRepository.DeleteAsync(todo, cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation("ToDoを削除しました: TodoId={TodoId}, DeletedBy={UserId}", todoId, currentUserId);
+        
+            return true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "ToDo削除中にエラーが発生しました: TodoId={TodoId}", todoId);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// ToDoを完了にする
     /// </summary>
     public async Task<bool> CompleteTodoAsync(

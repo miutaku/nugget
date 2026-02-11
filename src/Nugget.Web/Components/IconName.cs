@@ -20,5 +20,10 @@ public enum IconName
     Refresh,
     Plus,
     Search,
-    Building
+    Building,
+    Edit,
+    Trash,
+    ChevronDown,
+    ChevronUp,
+    ListCheck
 }

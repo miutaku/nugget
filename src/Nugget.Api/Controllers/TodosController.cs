@@ -58,6 +58,31 @@ public class TodosController : ControllerBase
     }
 
     /// <summary>
+    /// ToDoの詳細情報を取得（作成者または管理者のみ）
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(TodoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetTodo(Guid id, CancellationToken cancellationToken)
+    {
+        var todo = await _todoService.GetTodoByIdAsync(id, cancellationToken);
+        if (todo == null)
+        {
+            return NotFound();
+        }
+
+        // 作成者本人か管理者のみ閲覧可能
+        var userId = GetCurrentUserId();
+        if (!User.IsInRole("Admin") && todo.CreatedById != userId)
+        {
+            return Forbid();
+        }
+
+        return Ok(MapToResponse(todo));
+    }
+
+    /// <summary>
     /// ToDoを作成
     /// </summary>
     [HttpPost]
@@ -80,27 +105,7 @@ public class TodosController : ControllerBase
         var userId = GetCurrentUserId();
         var todo = await _todoService.CreateTodoAsync(request, userId, cancellationToken);
 
-        var response = new TodoResponse
-        {
-            Id = todo.Id,
-            Title = todo.Title,
-            Description = todo.Description,
-            DueDate = todo.DueDate,
-            TargetType = todo.TargetType,
-            TargetGroupName = todo.TargetGroupName,
-            NotifyImmediately = todo.NotifyImmediately,
-            ReminderDays = todo.ReminderDays,
-            CreatedAt = todo.CreatedAt,
-            UpdatedAt = todo.UpdatedAt,
-            CreatedBy = new CreatedByResponse
-            {
-                Id = userId,
-                Name = User.FindFirstValue(ClaimTypes.Name) ?? "Unknown",
-                Email = User.FindFirstValue(ClaimTypes.Email) ?? "Unknown"
-            }
-        };
-
-        return CreatedAtAction(nameof(GetMyTodos), response);
+        return CreatedAtAction(nameof(GetMyTodos), MapToResponse(todo));
     }
 
     /// <summary>
@@ -137,27 +142,37 @@ public class TodosController : ControllerBase
             return NotFound();
         }
 
-        var response = new TodoResponse
-        {
-            Id = todo.Id,
-            Title = todo.Title,
-            Description = todo.Description,
-            DueDate = todo.DueDate,
-            TargetType = todo.TargetType,
-            TargetGroupName = todo.TargetGroupName,
-            NotifyImmediately = todo.NotifyImmediately,
-            ReminderDays = todo.ReminderDays,
-            CreatedAt = todo.CreatedAt,
-            UpdatedAt = todo.UpdatedAt,
-            CreatedBy = new CreatedByResponse
-            {
-                Id = todo.CreatedBy.Id,
-                Name = todo.CreatedBy.Name,
-                Email = todo.CreatedBy.Email
-            }
-        };
+        return Ok(MapToResponse(todo));
+    }
 
-        return Ok(response);
+    /// <summary>
+    /// ToDoを削除
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteTodo(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = GetCurrentUserId();
+        var isAdmin = User.IsInRole("Admin");
+
+        try
+        {
+            var result = await _todoService.DeleteTodoAsync(id, userId, isAdmin, cancellationToken);
+            if (!result)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     /// <summary>
@@ -221,10 +236,29 @@ public class TodosController : ControllerBase
     }
 
     /// <summary>
-    /// 現在のログインユーザーのIDを取得します。
-    /// SAML認証やSCIM統合などにより、複数の NameIdentifier クレームが存在する可能性があるため、
-    /// ClaimsTransformation で正規化された GUID 形式の値を優先的に取得します。
+    /// Todo エンティティを TodoResponse DTO にマッピング
     /// </summary>
+    private static TodoResponse MapToResponse(Nugget.Core.Entities.Todo todo) => new()
+    {
+        Id = todo.Id,
+        Title = todo.Title,
+        Description = todo.Description,
+        DueDate = todo.DueDate,
+        TargetType = todo.TargetType,
+        TargetGroupName = todo.TargetGroupName,
+        TargetGroupId = todo.TargetGroupId,
+        NotifyImmediately = todo.NotifyImmediately,
+        ReminderDays = todo.ReminderDays,
+        CreatedAt = todo.CreatedAt,
+        UpdatedAt = todo.UpdatedAt,
+        CreatedBy = new CreatedByResponse
+        {
+            Id = todo.CreatedBy.Id,
+            Name = todo.CreatedBy.Name,
+            Email = todo.CreatedBy.Email
+        }
+    };
+
     private Guid GetCurrentUserId()
     {
         // ClaimsTransformation によって追加された Guid 形式の NameIdentifier を優先的に探す

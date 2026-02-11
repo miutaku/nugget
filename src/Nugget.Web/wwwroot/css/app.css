@@ -737,6 +737,7 @@ a,
 .form-row {
     display: flex;
     gap: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .form-row .form-group {
@@ -845,7 +846,8 @@ a,
 }
 
 .btn-primary,
-.btn-secondary {
+.btn-secondary,
+.btn-danger {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -881,6 +883,20 @@ a,
 .btn-secondary:hover {
     border-color: var(--color-text-muted);
     color: var(--color-text);
+}
+
+.btn-danger {
+    background: var(--color-danger);
+    color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+}
+
+.btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Error Banner */

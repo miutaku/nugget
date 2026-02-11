@@ -25,6 +25,28 @@ public class CreateTodoModel
 }
 
 /// <summary>
+/// ToDo更新リクエスト
+/// </summary>
+public class UpdateTodoModel
+{
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public DateTime? DueDate { get; set; }
+    public TimeOnly? DueTime { get; set; }
+    public bool? NotifyImmediately { get; set; }
+    public List<int>? ReminderDays { get; set; }
+
+    public DateTime? GetDueDateTime()
+    {
+        if (DueDate.HasValue)
+        {
+            return DueDate.Value.Date.Add(DueTime?.ToTimeSpan() ?? TimeSpan.Zero);
+        }
+        return null;
+    }
+}
+
+/// <summary>
 /// ToDo作成結果
 /// </summary>
 public class CreateTodoResult
@@ -71,4 +93,27 @@ public class UserResponse
 public class SystemInfo
 {
     public string OrganizationName { get; set; } = string.Empty;
+}
+
+public class TodoResponse
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public DateTime DueDate { get; set; }
+    public string TargetType { get; set; } = "All";
+    public string? TargetGroupName { get; set; }
+    public Guid? TargetGroupId { get; set; }
+    public bool NotifyImmediately { get; set; }
+    public int[] ReminderDays { get; set; } = [];
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public CreatedByResponse CreatedBy { get; set; } = new();
+}
+
+public class CreatedByResponse
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
 }
