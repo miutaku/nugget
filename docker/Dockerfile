@@ -1,5 +1,5 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403 AS build
 WORKDIR /app
 
 # Copy solution and project files
@@ -28,7 +28,7 @@ RUN dotnet publish src/Nugget.Api/Nugget.Api.csproj -c Release -o /out/api
 RUN dotnet publish src/Nugget.Web/Nugget.Web.csproj -c Release -o /out/web
 
 # Runtime stage for API
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS api
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.14 AS api
 RUN apt-get update && apt-get install -y libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=publish /out/api .
